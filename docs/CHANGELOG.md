@@ -147,3 +147,113 @@ d:\project\study\
 - [ ] 申请高德地图 API Key
 
 ---
+
+## [2026-01-15 16:43] 修复 TypeScript 类型缓存问题
+
+### 🐛 问题描述
+
+- **Error**: `类型"AiService"上不存在属性"chatStream"。`
+- **Location**: `backend/src/modules/ai/ai.controller.ts:L51`
+- **Impact**: TypeScript 编译器报错，阻止开发
+
+### 🔍 根因分析
+
+- **实际情况**: `chatStream` 方法确实存在于 `ai.service.ts` 中（L64-L130）
+- **原因**: TypeScript Language Server 的类型缓存未刷新
+  - NestJS 增量编译可能未检测到 Service 文件更新
+  - IDE 的类型定义缓存了旧版本
+
+### ✅ 解决方案
+
+- **Action**: 清除编译缓存和构建产物
+  ```bash
+  rm -rf dist node_modules/.cache
+  ```
+- **Effect**: 强制 TypeScript 重新分析类型定义
+- **Alternative**: 如果问题仍然存在，可能需要重启 IDE 或 TypeScript Language Server
+
+### 📝 记录要点
+
+- **文件涉及**:
+  - `backend/src/modules/ai/ai.service.ts` - 包含 `chatStream` 方法定义
+  - `backend/src/modules/ai/ai.controller.ts` - 调用 `chatStream` 的位置
+- **方法签名**:
+  ```typescript
+  async chatStream(options: {
+    messages: QwenChatRequest['messages']
+    temperature?: number
+    maxTokens?: number
+    onChunk: (chunk: string) => void
+    onComplete: () => void
+    onError: (error: Error) => void
+  }): Promise<void>
+  ```
+
+### ⚠️ 预防措施
+
+- 遇到"属性不存在"错误时，先确认代码是否真的缺失该属性
+- 对于 NestJS 项目，清除 `dist` 目录通常能解决大部分类型问题
+- 开发时建议启用 `watch` 模式，自动检测变更
+
+---
+
+## [2026-01-15 16:44] 修复 SSE 流式接口 404 错误
+
+### 🐛 问题描述
+
+- **Error**: `POST /api/ai/chat/stream` 返回 404 (Not Found)
+- **Location**: 前端请求 `/api/ai/chat/stream` 时失败
+- **Impact**: 无法使用流式聊天功能
+
+### 🔍 根因分析
+
+- **错误原因**: NestJS 的 `@Sse()` 装饰器默认只支持 GET 请求
+- **前端实现**: `chatStore.ts` 使用 POST 方法发送请求（L79-87）
+- **冲突**: 装饰器限制导致路由无法匹配，返回 404
+
+### ✅ 解决方案
+
+- **Action**: 修改 `ai.controller.ts` 的 `streamChat` 方法
+  - 将 `@Sse('chat/stream')` 改为 `@Post('chat/stream')`
+  - 手动注入 `@Res()` 响应对象
+  - 手动设置 SSE 响应头：
+    ```typescript
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    ```
+  - 移除 RxJS Observable，改用直接写入响应流
+
+### 📝 修改内容
+
+- **Files Changed**: `backend/src/modules/ai/ai.controller.ts`
+- **移除依赖**:
+  - `@nestjs/common` 中的 `Sse`, `MessageEvent`
+  - `rxjs` 中的 `Observable`, `Subject`
+- **新增依赖**:
+  - `@nestjs/common` 中的 `Res`
+  - `express` 中的 `Response` 类型
+
+### 💡 技术要点
+
+**SSE 实现方式对比**:
+
+1. **NestJS 原生 @Sse 装饰器**:
+
+   - ✅ 优点: 简洁，自动处理响应头
+   - ❌ 缺点: 只支持 GET 请求，无法接收 POST body
+   - 适用场景: 简单的服务端推送
+
+2. **手动 SSE 实现**:
+   - ✅ 优点: 支持任意 HTTP 方法，可接收请求体
+   - ✅ 优点: 完全控制响应流
+   - ❌ 缺点: 需要手动设置响应头
+   - 适用场景: 需要基于请求体内容推送数据
+
+### ⚠️ 待验证
+
+- [ ] 启动后端服务器，确认没有编译错误
+- [ ] 前端发送消息，验证 SSE 流式响应是否正常
+- [ ] 测试错误处理逻辑
+
+---

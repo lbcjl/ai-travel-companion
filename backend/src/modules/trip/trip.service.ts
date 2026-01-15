@@ -43,19 +43,32 @@ export class TripService {
 	}
 
 	private loadMockData() {
-		const dataPath = path.join(__dirname, '../../data')
+		// 使用项目根目录 + src/data 路径
+		const dataPath = path.join(process.cwd(), 'src', 'data')
 
-		this.hotels = JSON.parse(
-			fs.readFileSync(path.join(dataPath, 'hotels-mock.json'), 'utf-8')
-		)
+		try {
+			this.hotels = JSON.parse(
+				fs.readFileSync(path.join(dataPath, 'hotels-mock.json'), 'utf-8')
+			)
 
-		this.attractions = JSON.parse(
-			fs.readFileSync(path.join(dataPath, 'attractions-mock.json'), 'utf-8')
-		)
+			this.attractions = JSON.parse(
+				fs.readFileSync(path.join(dataPath, 'attractions-mock.json'), 'utf-8')
+			)
 
-		this.restaurants = JSON.parse(
-			fs.readFileSync(path.join(dataPath, 'restaurants-mock.json'), 'utf-8')
-		)
+			this.restaurants = JSON.parse(
+				fs.readFileSync(path.join(dataPath, 'restaurants-mock.json'), 'utf-8')
+			)
+
+			console.log(
+				`✅ Loaded ${this.hotels.length} hotels, ${this.attractions.length} attractions, ${this.restaurants.length} restaurants`
+			)
+		} catch (error: any) {
+			console.error('❌ Failed to load mock data:', error.message)
+			// 初始化为空数组，避免服务崩溃
+			this.hotels = []
+			this.attractions = []
+			this.restaurants = []
+		}
 	}
 
 	/**

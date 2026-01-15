@@ -1,7 +1,21 @@
 import { motion } from 'framer-motion'
 import { Plane, Sparkles, MapPin } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function LandingPage() {
+	const [initialMessage, setInitialMessage] = useState('')
+	const navigate = useNavigate()
+
+	const handleStartPlanning = () => {
+		const message = initialMessage.trim()
+		if (message) {
+			navigate('/chat', { state: { initialMessage: message } })
+		} else {
+			navigate('/chat')
+		}
+	}
+
 	return (
 		<div className='min-h-screen'>
 			{/* Hero Section */}
@@ -37,11 +51,22 @@ export default function LandingPage() {
 					<div className='max-w-2xl mx-auto'>
 						<div className='flex flex-col gap-4'>
 							<textarea
+								value={initialMessage}
+								onChange={(e) => setInitialMessage(e.target.value)}
 								placeholder='我想去杭州玩 3 天，预算 3000 元...'
 								className='input-field text-lg resize-none'
 								rows={4}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' && !e.shiftKey) {
+										e.preventDefault()
+										handleStartPlanning()
+									}
+								}}
 							/>
-							<button className='btn-primary py-3 px-8 w-full text-lg'>
+							<button
+								onClick={handleStartPlanning}
+								className='btn-primary py-3 px-8 w-full text-lg'
+							>
 								开始规划
 							</button>
 						</div>
