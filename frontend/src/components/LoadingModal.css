@@ -1,0 +1,99 @@
+.loading-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(255, 255, 255, 0.8);
+	backdrop-filter: blur(8px);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	animation: fadeIn 0.3s ease;
+}
+
+.loading-modal-content {
+	background: white;
+	padding: 40px;
+	border-radius: 24px;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+	text-align: center;
+	max-width: 400px;
+	width: 90%;
+	border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.loading-modal-content h3 {
+	margin: 20px 0 10px;
+	color: var(--color-text-main);
+	font-size: 1.5rem;
+}
+
+.loading-modal-content p {
+	color: var(--color-text-secondary);
+	margin: 0;
+}
+
+.plane-animation {
+	height: 100px;
+	position: relative;
+	overflow: hidden;
+	margin-bottom: 20px;
+}
+
+.plane {
+	font-size: 3rem;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	animation: float 2s ease-in-out infinite;
+	z-index: 2;
+}
+
+.cloud {
+	position: absolute;
+	font-size: 2rem;
+	opacity: 0.5;
+	animation: cloudMove 3s linear infinite;
+}
+
+.cloud-1 {
+	top: 20%;
+	left: -20%;
+	animation-duration: 4s;
+}
+.cloud-2 {
+	top: 60%;
+	left: -20%;
+	animation-duration: 3s;
+	animation-delay: 1s;
+}
+
+@keyframes float {
+	0%,
+	100% {
+		transform: translate(-50%, -50%) translateY(0);
+	}
+	50% {
+		transform: translate(-50%, -50%) translateY(-10px);
+	}
+}
+
+@keyframes cloudMove {
+	0% {
+		left: -20%;
+		opacity: 0;
+	}
+	10% {
+		opacity: 0.5;
+	}
+	90% {
+		opacity: 0.5;
+	}
+	100% {
+		left: 120%;
+		opacity: 0;
+	}
+}

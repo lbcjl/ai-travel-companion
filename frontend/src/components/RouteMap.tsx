@@ -26,67 +26,56 @@ export interface Location {
 interface RouteMapProps {
 	locations: Location[]
 	height?: string
+	mapId?: string // 唯一ID，用于多实例
 }
 
-// 高德地图API Key和安全密钥（从环境变量读取）
-const AMAP_KEY = import.meta.env.VITE_AMAP_JS_API_KEY || ''
-const AMAP_SECURITY_KEY = import.meta.env.VITE_AMAP_SECURITY_KEY || ''
+// ... imports ...
 
 export default function RouteMap({
 	locations,
 	height = '500px',
+	mapId = 'amap-container',
 }: RouteMapProps) {
 	const mapContainer = useRef<HTMLDivElement>(null)
 	const [mapLoaded, setMapLoaded] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
+	// useEffect for loading script
 	useEffect(() => {
+		// 高德地图API Key (需确保 .env 已配置)
+		const AMAP_KEY = import.meta.env.VITE_AMAP_JS_API_KEY
+		const AMAP_SECURITY_KEY = import.meta.env.VITE_AMAP_SECURITY_KEY
+
 		if (!AMAP_KEY) {
-			setError('未配置高德地图API Key，请在 .env 中设置 VITE_AMAP_JS_API_KEY')
+			setError('未配置高德地图API Key')
 			return
 		}
 
-		// 如果配置了安全密钥，设置全局变量（必须在加载SDK之前设置）
-		if (AMAP_SECURITY_KEY) {
+		if ((window as any).AMap) {
+			setMapLoaded(true)
+			return
+		}
+
+		const script = document.createElement('script')
+		script.type = 'text/javascript'
+		script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Driving`
+		script.onerror = () => {
+			setError('高德地图JSAPI加载失败')
+		}
+		script.onload = () => {
 			;(window as any)._AMapSecurityConfig = {
 				securityJsCode: AMAP_SECURITY_KEY,
 			}
+			setMapLoaded(true)
 		}
+		document.head.appendChild(script)
 
-		// 加载高德地图SDK和插件
-		const loadAmapScript = () => {
-			return new Promise<void>((resolve, reject) => {
-				if ((window as any).AMap && (window as any).AMap.Driving) {
-					resolve()
-					return
-				}
-
-				const script = document.createElement('script')
-				// 添加 plugin=AMap.Driving 参数加载驾车规划插件
-				script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Driving`
-				script.async = true
-				script.onload = () => {
-					if ((window as any).AMap) {
-						resolve()
-					} else {
-						reject(new Error('高德地图SDK加载失败'))
-					}
-				}
-				script.onerror = () =>
-					reject(new Error('高德地图SDK加载失败，请检查网络连接'))
-				document.head.appendChild(script)
-			})
+		return () => {
+			document.head.removeChild(script)
+			// 清理全局变量，防止内存泄漏
+			delete (window as any).AMap
+			delete (window as any)._AMapSecurityConfig
 		}
-
-		loadAmapScript()
-			.then(() => {
-				setMapLoaded(true)
-				setError(null)
-			})
-			.catch((err) => {
-				setError(err.message)
-				console.error('高德地图加载失败:', err)
-			})
 	}, [])
 
 	useEffect(() => {
@@ -95,10 +84,7 @@ export default function RouteMap({
 		}
 
 		const AMap = (window as any).AMap
-		if (!AMap) {
-			setError('高德地图SDK未加载')
-			return
-		}
+		// ... check AMap ...
 
 		let map: any = null
 		let driving: any = null
@@ -108,9 +94,10 @@ export default function RouteMap({
 			map = new AMap.Map(mapContainer.current, {
 				zoom: 13,
 				center: [locations[0].lng, locations[0].lat],
-				viewMode: '3D',
-				mapStyle: 'amap://styles/whitesmoke', // 使用浅色地图样式
+				viewMode: '3D', // 确保 viewMode 一致
+				mapStyle: 'amap://styles/whitesmoke',
 			})
+			// ... rest of the code ...
 
 			// 添加自定义标记
 			locations.forEach((location, index) => {

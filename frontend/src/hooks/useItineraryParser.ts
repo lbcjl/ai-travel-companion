@@ -18,9 +18,11 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 	let currentLocations: any[] = []
 	let insideTable = false
 
+	// 动态表头索引
+	let headerMap: { [key: string]: number } = {}
+
 	const flushCurrentDay = () => {
 		if (currentLocations.length > 0) {
-			// 如果已经存在相同title的天，合并进去（防止AI把同一天拆成两段写）
 			const existingDay = days.find((d) => d.day === currentDayTitle)
 			if (existingDay) {
 				existingDay.locations = [...existingDay.locations, ...currentLocations]
@@ -37,12 +39,11 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i].trim()
 
-		// 1. 检测日期标题 (e.g., "#### 第1天", "### Day 1", "#### 第三天")
+		// 1. 检测日期标题
 		const dayMatch = line.match(
 			/#{2,4}\s*(第[\d一二三四五六七八九十]+天|Day\s*\d+|D\d+)/i
 		)
 		if (dayMatch) {
-			// 在开始新的一天前，保存上一天的数据
 			if (insideTable) {
 				insideTable = false
 			}
@@ -51,14 +52,42 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 			continue
 		}
 
-		// 2. 检测表格开始
+		// 2. 检测表格开始 (表头行)
 		if (
 			line.startsWith('|') &&
 			line.includes('序号') &&
-			line.includes('名称') &&
-			(line.includes('地址') || line.includes('位置'))
+			(line.includes('名称') || line.includes('地点'))
 		) {
 			insideTable = true
+
+			// 解析表头，建立索引映射
+			const headers = line
+				.split('|')
+				.slice(1, -1)
+				.map((h) => h.trim())
+
+			headerMap = {}
+			headers.forEach((h, idx) => {
+				if (h.includes('序号')) headerMap['order'] = idx
+				else if (h.includes('时间')) headerMap['time'] = idx
+				else if (h.includes('名称') || h.includes('地点'))
+					headerMap['name'] = idx
+				else if (h.includes('地址') || h.includes('位置'))
+					headerMap['address'] = idx
+				else if (h.includes('类型')) headerMap['type'] = idx
+				else if (h.includes('时长') || h.includes('建议时长'))
+					headerMap['duration'] = idx
+				else if (h.includes('费用') || h.includes('花费'))
+					headerMap['cost'] = idx
+				else if (h.includes('描述') || h.includes('备注'))
+					headerMap['description'] = idx
+				else if (h.includes('推荐') || h.includes('亮点'))
+					headerMap['highlights'] = idx
+				else if (h.includes('美食') || h.includes('餐饮'))
+					headerMap['food'] = idx
+				else if (h.includes('交通')) headerMap['transportation'] = idx
+			})
+
 			continue
 		}
 
@@ -69,68 +98,97 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 
 		// 4. 解析表格内容行
 		if (insideTable && line.startsWith('|')) {
-			const values = line
-				.split('|')
-				.map((v) => v.trim())
-				.filter((v, index) => index > 0 || v !== '')
+			// 简单的 split 可能无法处理包含 | 的内容，但在 Markdown 表格中 | 通常会被转义
+			const dirtyValues = line.split('|')
 
-			if (values.length >= 4) {
-				const cleanValues = line
-					.split('|')
-					.slice(1, -1)
-					.map((v) => v.trim())
+			// 确保行是完整的（前后都有 |）
+			if (dirtyValues.length < 3) continue
 
-				const getVal = (index: number) => cleanValues[index] || ''
+			const cleanValues = dirtyValues.slice(1, -1).map((v) => v.trim())
 
-				// 必须要有名称和地址才算有效点
-				const name = getVal(3)
-				const address = getVal(4)
-
-				if (name && address && address !== '-' && name !== '-') {
-					const location: any = {}
-					location.order = parseInt(getVal(0)) || currentLocations.length + 1
-					location.time = getVal(1)
-					location.type = mapTypeToEn(getVal(2))
-					location.name = name
-					location.address = address
-					location.duration = getVal(5)
-					location.cost = getVal(6)
-					location.description = getVal(7)
-
-					// 解析新增字段
-					const highlightsStr = getVal(8)
-					location.highlights =
-						highlightsStr && highlightsStr !== '-'
-							? highlightsStr.split(/[,、，]/).map((s) => s.trim())
-							: []
-
-					const foodStr = getVal(9)
-					location.food =
-						foodStr && foodStr !== '-'
-							? foodStr.split(/[,、，]/).map((s) => s.trim())
-							: []
-
-					const transportStr = getVal(10)
-					if (transportStr && transportStr !== '-') {
-						location.transportation = {
-							method: transportStr,
-						}
-					}
-
-					currentLocations.push(location)
+			// 辅助函数：根据表头获取值
+			const getVal = (key: string) => {
+				const idx = headerMap[key]
+				if (idx !== undefined && idx < cleanValues.length) {
+					return cleanValues[idx]
 				}
+				// 回退机制：如果没有找到表头映射，尝试使用旧的硬编码索引(作为最后的手段)
+				if (key === 'order') return cleanValues[0]
+				if (key === 'time') return cleanValues[1]
+				if (key === 'type') return cleanValues[2]
+				if (key === 'name') return cleanValues[3] // 假设
+				if (key === 'address') return cleanValues[4] // 假设
+				return ''
+			}
+
+			const name = getVal('name')
+			const address = getVal('address')
+
+			// 验证有效性：不能是空，不能是占位符 '-'，名字看起来不能像时间
+			const isTimeLike = (str: string) =>
+				/^[\d:：\s-]+$/.test(str) && str.includes(':')
+
+			// 增强过滤：过滤掉看起来像时长、纯数字或无效关键词的内容
+			const isInvalidName = (str: string) => {
+				if (!str || str === '-') return true
+				// 过滤时长 (e.g., "60分钟", "1小时", "2h", "1.5 hours")
+				if (/^[\d\.]+\s*(分钟|min|h|小时|hours?)$/i.test(str)) return true
+				// 过滤纯数字
+				if (/^\d+$/.test(str)) return true
+				// 过滤特定无效词
+				const invalidKeywords = [
+					'未找到',
+					'暂无',
+					'待定',
+					'无',
+					'推荐',
+					'建议时长',
+					'费用',
+				]
+				if (invalidKeywords.includes(str)) return true
+				return false
+			}
+
+			if (name && !isInvalidName(name) && !isTimeLike(name)) {
+				const location: any = {}
+				location.order =
+					parseInt(getVal('order')) || currentLocations.length + 1
+				location.time = getVal('time')
+				location.type = mapTypeToEn(getVal('type'))
+				location.name = name
+				location.address = address && address !== '-' ? address : name // 如果没有地址，用名字代替
+				location.duration = getVal('duration')
+				location.cost = getVal('cost')
+				location.description = getVal('description')
+
+				// 解析数组字段
+				const highlightsStr = getVal('highlights')
+				location.highlights =
+					highlightsStr && highlightsStr !== '-'
+						? highlightsStr.split(/[,、，]/).map((s) => s.trim())
+						: []
+
+				const foodStr = getVal('food')
+				location.food =
+					foodStr && foodStr !== '-'
+						? foodStr.split(/[,、，]/).map((s) => s.trim())
+						: []
+
+				const transportStr = getVal('transportation')
+				if (transportStr && transportStr !== '-') {
+					location.transportation = { method: transportStr }
+				}
+
+				currentLocations.push(location)
 			}
 		} else if (insideTable && line === '') {
-			// 表格结束
 			insideTable = false
 			flushCurrentDay()
 		}
 	}
 
-	// 循环结束后再次flush
 	flushCurrentDay()
 
-	// 如果没有识别出任何日期，但有数据，默认给个名字
 	if (days.length === 0 && currentLocations.length > 0) {
 		days.push({ day: '行程', locations: currentLocations })
 	}

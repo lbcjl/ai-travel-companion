@@ -1,0 +1,89 @@
+.itinerary-panel {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background: white;
+	border-left: 1px solid var(--color-border);
+	overflow: hidden;
+}
+
+.panel-header {
+	padding: var(--spacing-md);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(255, 255, 255, 0.8);
+	backdrop-filter: blur(10px);
+}
+
+.panel-title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.panel-title h2 {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: var(--color-text-main);
+	margin: 0;
+}
+
+.status-tag {
+	font-size: 0.75rem;
+	padding: 4px 8px;
+	background: #f0f9ff;
+	color: var(--color-primary);
+	border-radius: var(--radius-full);
+	font-weight: 500;
+	animation: pulse 2s infinite;
+}
+
+.panel-content {
+	flex: 1;
+	position: relative;
+	background: #f1f5f9; /*稍微深一点的背景，突出卡片*/
+	overflow-y: auto;
+	scroll-behavior: smooth;
+	padding: var(--spacing-md);
+}
+
+.cards-container {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	padding-bottom: var(--spacing-xl);
+}
+
+/* Removed map-container-full */
+
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	padding: var(--spacing-xl);
+	text-align: center;
+	color: var(--color-text-secondary);
+}
+
+.empty-icon {
+	font-size: 4rem;
+	margin-bottom: var(--spacing-md);
+	opacity: 0.5;
+	filter: grayscale(1);
+}
+
+.empty-state h3 {
+	font-size: 1.25rem;
+	color: var(--color-text-main);
+	margin-bottom: var(--spacing-sm);
+}
+
+.empty-state p {
+	font-size: 0.9rem;
+	max-width: 300px;
+	line-height: 1.6;
+}

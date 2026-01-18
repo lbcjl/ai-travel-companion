@@ -1,24 +1,45 @@
-.chat-interface {
+/* === 分屏布局容器 === */
+.app-container {
 	height: 100vh;
+	width: 100vw;
 	display: flex;
-	flex-direction: column;
-	max-width: 1000px;
-	margin: 0 auto;
-	background: transparent;
+	overflow: hidden;
+	background: var(--color-bg-base);
 }
 
-/* === 顶部标题栏 === */
+/* === 左侧聊天栏 === */
+.chat-sidebar {
+	width: 450px;
+	min-width: 350px;
+	max-width: 550px;
+	display: flex;
+	flex-direction: column;
+	background: rgba(255, 255, 255, 0.5);
+	backdrop-filter: blur(20px);
+	border-right: 1px solid var(--color-border);
+	position: relative;
+	z-index: 10;
+	box-shadow: var(--shadow-xl);
+}
+
+/* === 右侧地图面板 === */
+.map-panel {
+	flex: 1;
+	height: 100vh;
+	position: relative;
+	background: #fff;
+}
+
+/* === 顶部标题栏 (Sidebar Internal) === */
 .chat-header {
-	padding: var(--spacing-md) var(--spacing-lg);
+	padding: var(--spacing-md);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	background: rgba(255, 255, 255, 0.8);
 	backdrop-filter: blur(10px);
 	border-bottom: 1px solid var(--color-border);
-	position: sticky;
-	top: 0;
-	z-index: 10;
+	flex-shrink: 0;
 }
 
 .header-content {
@@ -28,34 +49,18 @@
 }
 
 .header-icon {
-	font-size: 2.5rem;
-	animation: bounce 2s ease infinite;
-}
-
-@keyframes bounce {
-	0%,
-	100% {
-		transform: translateY(0);
-	}
-	50% {
-		transform: translateY(-5px);
-	}
+	font-size: 2rem;
 }
 
 .header-text h1 {
-	font-size: 1.5rem;
+	font-size: 1.25rem;
 	font-weight: 800;
 	color: var(--color-text-main);
-	background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
 	margin: 0;
-	letter-spacing: -0.02em;
 }
 
 .header-text p {
-	font-size: 0.875rem;
+	font-size: 0.75rem;
 	color: var(--color-text-secondary);
 	margin: 0;
 }
@@ -63,201 +68,106 @@
 .new-chat-button {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
-	padding: 0.5rem 1rem;
+	gap: 4px;
+	padding: 6px 12px;
 	background: white;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-full);
 	color: var(--color-text-secondary);
-	font-family: var(--font-display);
-	font-weight: 500;
-	font-size: 0.875rem;
+	font-size: 0.8rem;
+	font-weight: 600;
 	cursor: pointer;
-	transition: all var(--duration-normal) ease;
-	box-shadow: var(--shadow-sm);
+	transition: all 0.2s ease;
 }
 
 .new-chat-button:hover {
 	border-color: var(--color-primary);
 	color: var(--color-primary);
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-md);
+	background: #f0f9ff;
 }
 
 /* === 消息容器 === */
 .messages-container {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--spacing-lg) var(--spacing-md);
+	padding: var(--spacing-md);
 	scroll-behavior: smooth;
 }
 
-/* === 欢迎页面 === */
-.welcome-message {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
-	text-align: center;
-	animation: fadeIn 0.6s ease;
-	background: radial-gradient(
-		circle at 50% 50%,
-		rgba(255, 255, 255, 0.8) 0%,
-		transparent 60%
-	);
-}
-
-.welcome-icon {
-	font-size: 5rem;
-	margin-bottom: var(--spacing-md);
-	filter: drop-shadow(0 10px 20px rgba(59, 130, 246, 0.2));
-}
-
-.welcome-message h2 {
-	font-size: 2rem;
-	margin-bottom: var(--spacing-xs);
-	color: var(--color-text-main);
-	letter-spacing: -0.02em;
-}
-
-.welcome-message > p {
-	font-size: 1.125rem;
-	color: var(--color-text-secondary);
-	margin-bottom: var(--spacing-xl);
-	max-width: 600px;
-}
-
-.quick-starts {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--spacing-md);
-	justify-content: center;
-}
-
-.quick-start-btn {
-	padding: 1rem 1.5rem;
-	background: white;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-lg);
-	color: var(--color-text-main);
-	font-family: var(--font-display);
-	font-size: 0.95rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: var(--shadow-sm);
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.quick-start-btn:hover {
-	border-color: var(--color-primary-light);
-	background: #f0f9ff;
-	transform: translateY(-2px);
-	box-shadow: var(--shadow-md);
-	color: var(--color-primary);
-}
-
-/* === 消息列表 === */
-.messages-list {
-	max-width: 800px;
-	margin: 0 auto;
-}
-
-/* === 打字指示器 === */
-.typing-indicator {
-	display: flex;
-	gap: var(--spacing-sm);
-	margin-bottom: var(--spacing-md);
-	animation: fadeIn 0.3s ease;
-}
-
-.typing-dots {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 12px 16px;
-	background: white;
-	border: 1px solid var(--color-border);
-	border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
-	box-shadow: var(--shadow-sm);
-}
-
-.typing-dots span {
-	width: 6px;
-	height: 6px;
-	background: var(--color-text-muted);
-	border-radius: 50%;
-	animation: typingDot 1.4s infinite;
-}
-
-.typing-dots span:nth-child(2) {
-	animation-delay: 0.2s;
-}
-.typing-dots span:nth-child(3) {
-	animation-delay: 0.4s;
-}
-
-@keyframes typingDot {
-	0%,
-	60%,
-	100% {
-		opacity: 0.3;
-		transform: scale(0.8);
-	}
-	30% {
-		opacity: 1;
-		transform: scale(1);
-	}
-}
-
-/* === 错误消息 === */
-.error-message {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-	padding: var(--spacing-sm) var(--spacing-md);
-	margin: var(--spacing-md) auto;
-	max-width: 600px;
-	background: #fef2f2;
-	border: 1px solid #fee2e2;
-	border-radius: var(--radius-md);
-	color: var(--color-error);
-	font-size: 0.9rem;
-	font-weight: 500;
-	box-shadow: var(--shadow-sm);
-}
-
 /* === 输入区域 === */
-.chat-input {
+.chat-input-wrapper {
 	padding: var(--spacing-md);
 	background: rgba(255, 255, 255, 0.9);
 	backdrop-filter: blur(10px);
 	border-top: 1px solid var(--color-border);
+	flex-shrink: 0;
 }
 
-/* === 响应式设计 === */
+/* === 欢迎页面 (Simplified for Sidebar) === */
+.welcome-message {
+	padding: var(--spacing-xl) var(--spacing-md);
+	text-align: center;
+}
+
+.welcome-icon {
+	font-size: 4rem;
+	margin-bottom: var(--spacing-md);
+}
+
+.welcome-message h2 {
+	font-size: 1.5rem;
+	margin-bottom: var(--spacing-sm);
+	color: var(--color-text-main);
+}
+
+.welcome-message > p {
+	font-size: 0.9rem;
+	margin-bottom: var(--spacing-lg);
+}
+
+.quick-starts {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.quick-start-btn {
+	padding: 12px;
+	background: white;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	font-size: 0.9rem;
+	text-align: left;
+	transition: all 0.2s;
+}
+
+.quick-start-btn:hover {
+	border-color: var(--color-primary);
+	box-shadow: var(--shadow-md);
+	transform: translateX(4px);
+}
+
+/* === 消息列表 === */
+.messages-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+/* === 响应式 === */
 @media (max-width: 768px) {
-	.chat-header {
-		padding: var(--spacing-sm);
-	}
-	.header-text h1 {
-		font-size: 1.25rem;
-	}
-	.header-text p {
-		font-size: 0.75rem;
-	}
-	.welcome-message h2 {
-		font-size: 1.5rem;
-	}
-	.quick-starts {
+	.app-container {
 		flex-direction: column;
-		width: 100%;
 	}
-	.quick-start-btn {
+
+	.chat-sidebar {
 		width: 100%;
-		justify-content: center;
+		height: 50vh;
+		border-right: none;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.map-panel {
+		height: 50vh;
 	}
 }

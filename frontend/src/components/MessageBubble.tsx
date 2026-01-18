@@ -1,6 +1,5 @@
 import type { Message } from '../types'
 import './MessageBubble.css'
-import ItineraryMap from './ItineraryMap'
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -33,15 +32,23 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 			<div className='message-content'>
 				<div className='message-text'>
 					{/* 使用 ReactMarkdown 渲染内容 */}
-					<div className='markdown-body'>
-						<ReactMarkdown remarkPlugins={[remarkGfm]}>
-							{message.content}
-						</ReactMarkdown>
-					</div>
+					{/* 使用 ReactMarkdown 渲染内容，如果为空则显示打字动画 */}
+					{message.content ? (
+						<div className='markdown-body'>
+							<ReactMarkdown remarkPlugins={[remarkGfm]}>
+								{message.content}
+							</ReactMarkdown>
+						</div>
+					) : (
+						<div className='typing-dots-inline'>
+							<span></span>
+							<span></span>
+							<span></span>
+						</div>
+					)}
 				</div>
 
-				{/* 如果是AI消息，尝试解析并显示地图 */}
-				{isAssistant && <ItineraryMap content={message.content} />}
+				{/* 地图已移动到右侧面板，此处不再显示 */}
 
 				<div className='message-time'>{formatTime(message.createdAt)}</div>
 			</div>

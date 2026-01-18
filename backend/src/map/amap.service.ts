@@ -97,11 +97,32 @@ export class AmapService {
 				continue
 			}
 
-			// 1. 尝试使用地址进行地理编码
-			let result = await this.geocode(location.address)
+			// 1. 预先检查名称是否有效（过滤时长、纯数字等）
+			const isInvalidName = (str: string) => {
+				if (!str) return true
+				// 过滤时长 (e.g., "60分钟", "1小时", "2h")
+				if (/^[\d\.]+\s*(分钟|min|h|小时|hours?)$/i.test(str)) return true
+				// 过滤纯数字
+				if (/^\d+$/.test(str)) return true
+				// 过滤短的无意义词
+				if (str.length < 2 && !['塔', '寺', '山'].some((s) => str.includes(s)))
+					return true
+				return false
+			}
 
-			// 2. 如果地址失败，尝试使用名称（有时候名称如“故宫”比地址更准确）
-			if (!result && location.name) {
+			if (isInvalidName(location.address) && isInvalidName(location.name)) {
+				this.logger.warn(`跳过无效地点: ${location.name} ${location.address}`)
+				continue
+			}
+
+			// 2. 尝试使用地址进行地理编码
+			let result: GeoCodeResult | null = null
+			if (!isInvalidName(location.address)) {
+				result = await this.geocode(location.address)
+			}
+
+			// 3. 如果地址失败或无效，尝试使用名称
+			if (!result && location.name && !isInvalidName(location.name)) {
 				this.logger.log(`地址地理编码失败，尝试使用名称: ${location.name}`)
 				result = await this.geocode(location.name)
 			}

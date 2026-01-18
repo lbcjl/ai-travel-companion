@@ -1,0 +1,126 @@
+.day-card {
+	background: white;
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-md);
+	margin-bottom: var(--spacing-lg);
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	transition: transform 0.2s ease;
+}
+
+.day-card:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-lg);
+}
+
+.day-header {
+	padding: var(--spacing-md);
+	background: linear-gradient(to right, #f8fafc, #fff);
+	border-bottom: 1px solid var(--color-border);
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+}
+
+.day-badge {
+	width: 32px;
+	height: 32px;
+	background: var(--color-primary);
+	color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 800;
+	font-family: var(--font-display);
+}
+
+.day-header h3 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--color-text-main);
+}
+
+.day-timeline {
+	padding: var(--spacing-md);
+}
+
+.timeline-item {
+	display: flex;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-sm);
+	position: relative;
+}
+
+.timeline-item:last-child {
+	margin-bottom: 0;
+}
+
+/* 连接线 */
+.timeline-item:not(:last-child)::before {
+	content: '';
+	position: absolute;
+	left: 48px; /* 根据 time 宽度调整 */
+	top: 24px;
+	bottom: -16px;
+	width: 2px;
+	background: #e2e8f0;
+}
+
+.timeline-time {
+	width: 40px;
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+	text-align: right;
+	padding-top: 4px;
+	flex-shrink: 0;
+}
+
+.timeline-content {
+	flex: 1;
+	padding-bottom: var(--spacing-sm);
+}
+
+.timeline-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.loc-name {
+	font-weight: 600;
+	color: var(--color-text-main);
+}
+
+.loc-tag {
+	font-size: 0.7rem;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: #f1f5f9;
+	color: #64748b;
+}
+
+.loc-tag.restaurant {
+	background: #fff7ed;
+	color: #ea580c;
+}
+.loc-tag.hotel {
+	background: #eff6ff;
+	color: #2563eb;
+}
+.loc-tag.attraction {
+	background: #f0fdf4;
+	color: #16a34a;
+}
+
+.timeline-desc {
+	font-size: 0.85rem;
+	color: var(--color-text-secondary);
+	line-height: 1.4;
+}
+
+.day-map-wrapper {
+	height: 300px;
+	border-top: 1px solid var(--color-border);
+}

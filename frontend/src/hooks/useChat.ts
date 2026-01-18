@@ -20,70 +20,56 @@ export function useChat() {
 			createdAt: new Date(),
 		}
 
-		// 2. 占位符：创建一个空的 AI 消息用于流式接收
-		const tempAssistantMessageId = (Date.now() + 1).toString()
-		const tempAssistantMessage: Message = {
-			id: tempAssistantMessageId,
-			role: 'assistant',
-			content: '', // 初始为空，即将开始打字
-			conversationId: conversation?.id || 'temp',
-			createdAt: new Date(),
-		}
-
+		// 更新 UI，暂时只显示用户消息
 		setConversation((prev) => {
-			if (!prev) return null // 理论上不会发生，因为下面会处理新会话逻辑
+			if (!prev) {
+				// 新会话：创建临时会话
+				return {
+					id: 'temp',
+					title: '新会话',
+					messages: [tempUserMessage],
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				}
+			}
 			return {
 				...prev,
-				messages: [...prev.messages, tempUserMessage, tempAssistantMessage],
+				messages: [...prev.messages, tempUserMessage],
 			}
 		})
 
 		try {
-			// 如果是新会话，我们需要先构造一个临时的 conversation 对象
-			if (!conversation) {
-				const tempConversation: Conversation = {
-					id: 'temp', // 稍后会被真实 ID 替换
-					title: '新会话',
-					messages: [tempUserMessage, tempAssistantMessage],
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				}
-				setConversation(tempConversation)
+			// 2. 发送非流式请求（LoadingModal 显示加载状态）
+			const response = await chatApi.sendMessage({
+				conversationId: conversation?.id,
+				content,
+			})
+
+			// 3. 收到完整响应后，更新会话
+			const assistantMessage: Message = {
+				id: (Date.now() + 1).toString(),
+				role: 'assistant',
+				content: response.message,
+				conversationId: response.conversationId,
+				createdAt: new Date(),
 			}
 
-			// 3. 发起流式请求
-			const response = await chatApi.sendMessageStream(
-				{
-					conversationId: conversation?.id,
-					content,
-				},
-				(chunk) => {
-					// 4. 实时更新：将收到的片段追加到最后一条消息
-					setConversation((prev) => {
-						if (!prev) return null
-						const newMessages = [...prev.messages]
-						const lastMsg = newMessages[newMessages.length - 1]
-
-						// 确保我们是在更新正确的那条 AI 消息
-						if (lastMsg.id === tempAssistantMessageId) {
-							lastMsg.content += chunk
-						}
-
-						return { ...prev, messages: newMessages }
-					})
-				}
-			)
-
-			// 5. 完成：更新会话 ID 和完整状态
-			// 注意：sendMessageStream 返回的 conversation 只有 ID 是准确的，messages 是空的
-			// 所以我们需要保留当前已经流式生成的 messages
-			setConversation((prev) => {
-				if (!prev) return null
-				return {
-					...prev,
-					id: response.conversationId, // 更新为真实 ID
-					// messages 保持状态即可
-				}
+			setConversation({
+				id: response.conversationId,
+				title: response.conversation.title || conversation?.title || '新会话',
+				messages: [
+					...(conversation?.messages || [tempUserMessage]),
+					tempUserMessage,
+					assistantMessage,
+				].filter(
+					(msg, index, arr) =>
+						// 去重：过滤掉临时用户消息的重复
+						arr.findIndex(
+							(m) => m.content === msg.content && m.role === msg.role
+						) === index
+				),
+				createdAt: response.conversation.createdAt,
+				updatedAt: response.conversation.updatedAt,
 			})
 
 			return response.message
@@ -91,14 +77,13 @@ export function useChat() {
 			const errorMessage = err instanceof Error ? err.message : '发送消息失败'
 			setError(errorMessage)
 
-			// 发生错误时，移除临时的空消息，或者显示错误信息
+			// 发生错误时，移除用户消息
 			setConversation((prev) => {
 				if (!prev) return null
-				const msgs = [...prev.messages]
-				if (msgs[msgs.length - 1].id === tempAssistantMessageId) {
-					msgs.pop() // 移除失败的 AI 消息
+				return {
+					...prev,
+					messages: prev.messages.filter((m) => m.id !== tempUserMessage.id),
 				}
-				return { ...prev, messages: msgs }
 			})
 
 			throw err
