@@ -8,14 +8,36 @@ interface DayCardProps {
 }
 
 export default function DayCard({ day, index }: DayCardProps) {
-	// 简单的文字处理：将 "Day 1" 或 "第1天" 提取出来
 	const title = day.day || `第 ${index + 1} 天`
+
+	// 计算每日总花销
+	const totalCost =
+		day.dailyCost ||
+		day.locations.reduce((sum, loc) => {
+			const costMatch = loc.cost?.match(/\d+/)
+			const costValue = costMatch ? parseInt(costMatch[0]) : 0
+			return sum + costValue
+		}, 0)
 
 	return (
 		<div className='day-card'>
 			<div className='day-header'>
 				<div className='day-badge'>{index + 1}</div>
-				<h3>{title}</h3>
+				<div className='day-title-section'>
+					<h3>{title}</h3>
+					<div className='day-meta'>
+						{day.weather && (
+							<span className='weather-tag' title='天气'>
+								☀️ {day.weather}
+							</span>
+						)}
+						{totalCost > 0 && (
+							<span className='cost-tag' title='预计花销'>
+								💰 ¥{totalCost}
+							</span>
+						)}
+					</div>
+				</div>
 			</div>
 
 			<div className='day-timeline'>

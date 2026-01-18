@@ -18,6 +18,8 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 
 	let currentDayTitle = '行程总览'
 	let currentLocations: any[] = []
+	let currentWeather: string | undefined
+	let currentDailyCost: number | undefined
 	let insideTable = false
 
 	// 动态表头索引
@@ -28,13 +30,23 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 			const existingDay = days.find((d) => d.day === currentDayTitle)
 			if (existingDay) {
 				existingDay.locations = [...existingDay.locations, ...currentLocations]
+				// 如果已有天气信息，保留；否则尝试更新
+				if (!existingDay.weather && currentWeather)
+					existingDay.weather = currentWeather
+				if (!existingDay.dailyCost && currentDailyCost)
+					existingDay.dailyCost = currentDailyCost
 			} else {
 				days.push({
 					day: currentDayTitle,
 					locations: [...currentLocations],
+					weather: currentWeather,
+					dailyCost: currentDailyCost,
 				})
 			}
 			currentLocations = []
+			// 重置临时状态，但保留当前天标题直到下一个标题出现
+			currentWeather = undefined
+			currentDailyCost = undefined
 		}
 	}
 
@@ -51,6 +63,29 @@ const parseMarkdownTable = (content: string): DayItinerary[] => {
 			}
 			flushCurrentDay()
 			currentDayTitle = dayMatch[1]
+			continue
+		}
+
+		// 1.5 检测天气和花销 (新增)
+		// 匹配格式: > **天气**：晴转多云，25°C
+		const weatherMatch = line.match(
+			/>\s*\*\*(?:天气|Weather)\*\*[：:]\s*([^\n]+)/i
+		)
+		if (weatherMatch) {
+			currentWeather = weatherMatch[1].trim()
+			continue
+		}
+
+		// 匹配格式: > **今日预计花销**：¥800
+		const costMatch = line.match(
+			/>\s*\*\*(?:今日预计花销|Daily Cost|预算|Cost)\*\*[：:]\s*([^\n]+)/i
+		)
+		if (costMatch) {
+			const costStr = costMatch[1].trim()
+			const costNum = parseInt(costStr.replace(/[^\d]/g, ''))
+			if (!isNaN(costNum)) {
+				currentDailyCost = costNum
+			}
 			continue
 		}
 

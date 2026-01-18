@@ -84,14 +84,24 @@ export class GaodeService {
 		this.logger.log(`正在获取 ${city} 的真实推荐数据...`)
 
 		try {
-			// 并发查询美食和酒店
-			const [foods, hotels] = await Promise.all([
+			// 并发查询景点、美食和酒店
+			const [sights, foods, hotels] = await Promise.all([
+				this.searchPOI('景点', city, '110000'), // 110000 是风景名胜
 				this.searchPOI('美食', city, '050000'), // 050000 是餐饮服务
 				this.searchPOI('酒店', city, '100000'), // 100000 是住宿服务
 			])
 
 			// 格式化数据为 Markdown 列表供 AI 阅读
 			let context = `\n**【真实数据参考】高德地图为您找到 ${city} 的以下真实地点（请优先从中选择）：**\n`
+
+			if (sights.length > 0) {
+				context += `\n🏞️ **推荐景点**：\n`
+				sights.slice(0, 8).forEach((p) => {
+					const rating = p.biz_ext?.rating ? `评分:${p.biz_ext.rating}` : ''
+					const cost = p.biz_ext?.cost ? `门票:¥${p.biz_ext.cost}` : ''
+					context += `- **${p.name}** (${p.address}) ${rating} ${cost}\n`
+				})
+			}
 
 			if (foods.length > 0) {
 				context += `\n🥡 **推荐餐厅**：\n`

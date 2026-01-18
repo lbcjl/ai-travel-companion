@@ -3,7 +3,6 @@ import './MessageBubble.css'
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import TravelPlanCard from './TravelPlanCard'
 
 interface MessageBubbleProps {
 	message: Message
@@ -42,7 +41,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 					{/* 对于旅行计划使用卡片展示，其他消息使用 Markdown */}
 					{message.content ? (
 						isTravelPlan ? (
-							<TravelPlanCard content={message.content} />
+							<div className='plan-confirmation-text'>
+								✅ 行程规划已生成，详情请查看右侧地图面板
+							</div>
 						) : (
 							<div className='markdown-body'>
 								<ReactMarkdown remarkPlugins={[remarkGfm]}>
