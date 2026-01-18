@@ -32,9 +32,14 @@ export class LangChainService {
 ## ⛅ 实时天气参考
 {weather_info}
 
-## 📍 真实地点参考数据 (来自高德地图)
+## 📍 真实地点参考数据 (来自高德地图) - ⚠️ 重要约束
 {poi_info}
-*(请优先使用上述参考数据中的餐厅和酒店，如果不够用，请确保你推荐的其他地点也是真实存在的)*
+
+**🚨 强制要求：**
+- 如果上方提供了【真实数据参考】，你**必须优先且仅从中选择**餐厅和酒店，不得编造其他地点
+- 你可以自由推荐景点，但**餐厅和酒店必须严格使用参考数据**
+- 如果参考数据不足，请明确说明"需要用户补充更多偏好后查询"，而不是臆造
+- **禁止推荐非目的地城市的地点**（例如用户去厦门，你绝对不能推荐北京、成都等其他城市的地点）
 
 ## 📝 方案生成要求
 当你收集到上述信息后，请生成一份**真实、详细**的旅行方案。方案必须包含以下板块：
@@ -119,10 +124,17 @@ export class LangChainService {
 			let poiInfo = ''
 
 			if (lastUserMessage) {
-				const cityMatch = lastUserMessage.match(
-					/(?:去|玩|游览|到)([\u4e00-\u9fa5]{2,5})/
+				// 优先提取目的地城市（匹配"去XX"、"到XX"、"玩XX"等模式）
+				// 排除"从XX出发"的起点城市
+				const destinationMatch = lastUserMessage.match(
+					/(?:去|到|玩|游览|前往)([^\s，,。、]{2,5}?)(?:玩|旅游|旅行|游|自由行)?/
 				)
-				const city = cityMatch ? cityMatch[1] : null
+
+				// 如果没有明确的目的地，尝试匹配任意中文城市名
+				const city = destinationMatch ? destinationMatch[1] : null
+
+				this.logger.log(`用户消息: "${lastUserMessage}"`)
+				this.logger.log(`提取的目的地城市: ${city || '未检测到'}`)
 
 				if (city) {
 					this.logger.log(
@@ -135,10 +147,12 @@ export class LangChainService {
 
 					if (weather) {
 						weatherInfo = `\n**当前目的地(${city})天气参考**：\n${weather}\n请根据天气情况调整行程安排。`
+						this.logger.log(`✅ 天气数据获取成功`)
 					}
 
 					if (pois) {
 						poiInfo = pois
+						this.logger.log(`✅ POI数据获取成功，长度: ${pois.length} 字符`)
 					}
 				}
 			}
@@ -149,11 +163,15 @@ export class LangChainService {
 				weatherInfo || '（暂无具体天气信息，请按一般季节性气候规划）'
 			)
 
-			finalSystemPrompt = finalSystemPrompt.replace(
-				'{poi_info}',
-				poiInfo ||
-					'（暂无第三方推荐数据，请基于你的知识库推荐知名且真实的地点）'
-			)
+			if (poiInfo) {
+				finalSystemPrompt = finalSystemPrompt.replace('{poi_info}', poiInfo)
+			} else {
+				// 如果没有POI数据，明确警告AI
+				finalSystemPrompt = finalSystemPrompt.replace(
+					'{poi_info}',
+					'⚠️ **警告：未能获取到该城市的真实POI数据。请基于你的知识库推荐该城市真实存在的知名地点，但务必确保地点的真实性和准确性。**'
+				)
+			}
 
 			// 3. 转换消息格式
 			const langChainMessages = [
@@ -186,14 +204,14 @@ export class LangChainService {
 	}
 
 	/**
-	 * 使用 LangChain 调用通义千问 API
+	 * 使用 LangChain 调用通义千问 API (非流式)
 	 */
 	async chat(messages: LangChainMessage[]): Promise<string> {
-		// ... existing chat method implementation ...
-		// Re-using the stream logic might be better refactoring but strict separation is safer for now.
-		// Actually, to avoid code duplication, I could refactor common logic, but given the constraints, I'll keep chat as legacy backup or refactor later if needed.
-		// For now, let's just keep 'chat' as is or if I'm replacing the whole file content I should be careful.
-		// Wait, I am using replace_file_content for a specific block. I'll just add the method before 'chat'.
-		return this.chat(messages) // Logic placeholder, I will not touch the original chat method in this replacement chunk if I target correctly.
+		// 复用流式逻辑，但收集所有 chunks 后返回完整内容
+		let fullResponse = ''
+		for await (const chunk of this.chatStream(messages)) {
+			fullResponse += chunk
+		}
+		return fullResponse
 	}
 }

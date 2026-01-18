@@ -84,12 +84,23 @@ export default function RouteMap({
 		}
 
 		const AMap = (window as any).AMap
-		// ... check AMap ...
+		if (!AMap) {
+			setError('高德地图SDK未加载')
+			return
+		}
 
 		let map: any = null
 		let driving: any = null
 
 		try {
+			console.log(
+				'初始化地图，中心点:',
+				locations[0],
+				'共',
+				locations.length,
+				'个地点'
+			)
+
 			// 创建地图实例
 			map = new AMap.Map(mapContainer.current, {
 				zoom: 13,
