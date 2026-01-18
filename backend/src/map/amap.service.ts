@@ -1,0 +1,179 @@
+import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import axios, { AxiosInstance } from 'axios'
+
+export interface Location {
+	name: string
+	address: string
+	lat?: number
+	lng?: number
+}
+
+export interface GeoCodeResult {
+	name: string
+	address: string
+	location: string // "经度,纬度"
+	lat: number
+	lng: number
+}
+
+@Injectable()
+export class AmapService {
+	private readonly logger = new Logger(AmapService.name)
+	private readonly apiKey: string
+	private readonly client: AxiosInstance
+
+	constructor(private configService: ConfigService) {
+		const apiKey = this.configService.get<string>('AMAP_WEB_API_KEY')
+
+		if (!apiKey) {
+			throw new Error(
+				'未配置 AMAP_WEB_API_KEY，请在 .env 文件中设置高德地图 Web 服务 API Key'
+			)
+		}
+
+		this.apiKey = apiKey
+
+		// 创建 Axios 实例
+		this.client = axios.create({
+			baseURL: 'https://restapi.amap.com',
+			timeout: 10000,
+		})
+
+		this.logger.log(`🗺️ 高德地图服务已初始化`)
+	}
+
+	/**
+	 * 地理编码：将地址转换为经纬度
+	 */
+	async geocode(address: string): Promise<GeoCodeResult | null> {
+		try {
+			const response = await this.client.get('/v3/geocode/geo', {
+				params: {
+					key: this.apiKey,
+					address: address,
+				},
+			})
+
+			if (response.data.status === '1' && response.data.geocodes?.length > 0) {
+				const result = response.data.geocodes[0]
+				const [lng, lat] = result.location.split(',').map(Number)
+
+				this.logger.debug(`地理编码成功: ${address} -> ${result.location}`)
+
+				return {
+					name: result.formatted_address || address,
+					address: result.formatted_address || address,
+					location: result.location,
+					lat,
+					lng,
+				}
+			}
+
+			this.logger.warn(`地理编码失败: ${address}，未找到结果`)
+			return null
+		} catch (error) {
+			this.logger.error(`地理编码API调用失败: ${address}`, error)
+			throw new Error(`地理编码失败: ${error.message}`)
+		}
+	}
+
+	/**
+	 * 批量地理编码
+	 */
+	async batchGeocode(locations: Location[]): Promise<GeoCodeResult[]> {
+		const results: GeoCodeResult[] = []
+
+		for (const location of locations) {
+			// 如果已有经纬度，跳过
+			if (location.lat && location.lng) {
+				results.push({
+					name: location.name,
+					address: location.address,
+					location: `${location.lng},${location.lat}`,
+					lat: location.lat,
+					lng: location.lng,
+				})
+				continue
+			}
+
+			// 尝试使用地址进行地理编码
+			const result = await this.geocode(location.address)
+			if (result) {
+				results.push({
+					...result,
+					name: location.name, // 保留原始名称
+				})
+			} else {
+				this.logger.warn(
+					`无法获取地址坐标: ${location.name} - ${location.address}`
+				)
+			}
+
+			// 避免频繁调用API
+			await this.delay(200)
+		}
+
+		return results
+	}
+
+	/**
+	 * 生成静态地图图片URL
+	 */
+	generateStaticMapUrl(
+		locations: GeoCodeResult[],
+		options?: {
+			width?: number
+			height?: number
+			zoom?: number
+		}
+	): string {
+		const { width = 800, height = 600, zoom = 13 } = options || {}
+
+		// 构建markers参数（标记点）
+		const markers = locations
+			.map((loc, index) => {
+				// 格式：经度,纬度
+				return `${loc.lng},${loc.lat}`
+			})
+			.join('|')
+
+		// 构建路径参数（连接线）
+		const paths = locations.map((loc) => `${loc.lng},${loc.lat}`).join(';')
+
+		// 计算中心点（使用第一个点）
+		const center =
+			locations.length > 0
+				? `${locations[0].lng},${locations[0].lat}`
+				: '116.397428,39.90923' // 默认北京
+
+		const url = new URL('https://restapi.amap.com/v3/staticmap')
+		url.searchParams.append('key', this.apiKey)
+		url.searchParams.append('size', `${width}*${height}`)
+		url.searchParams.append('zoom', zoom.toString())
+		url.searchParams.append('center', center)
+
+		// 添加标记（红色标记）
+		if (markers) {
+			url.searchParams.append(
+				'markers',
+				`-1,https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png,0:${markers}`
+			)
+		}
+
+		// 添加路径（蓝色线条）
+		if (paths) {
+			url.searchParams.append('paths', `10,0x0000FF,1,,:${paths}`)
+		}
+
+		this.logger.debug(`生成静态地图URL，点数: ${locations.length}`)
+		return url.toString()
+	}
+
+	/**
+	 * 延迟函数
+	 */
+	private delay(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms))
+	}
+}
