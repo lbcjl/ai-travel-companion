@@ -42,7 +42,7 @@ export class GaodeService {
 	async searchPOI(
 		keywords: string,
 		city: string,
-		type?: string
+		type?: string,
 	): Promise<GaodePOI[]> {
 		if (!this.apiKey) return []
 
@@ -93,40 +93,21 @@ export class GaodeService {
 				// 获取排名第一的景点的行政区名称 (如 "思明区")
 				district = sights[0].adname || ''
 				this.logger.log(
-					`根据热门景点 [${sights[0].name}] 锁定核心区域: ${district}`
+					`根据热门景点 [${sights[0].name}] 锁定核心区域: ${district}`,
 				)
 			}
 
 			// 2. 基于核心区域搜索美食和酒店
-			// 修正：city参数必须是纯城市名，否则citylimit失效会导致搜索全国(变成北京)
-			// 将区名拼接到关键字中： "思明区 美食"
-			const keywordPrefix = district ? `${district} ` : ''
+			// 修正：不再强制锁定 district，而是搜索全市热门，避免出现"全部在湖里区"的情况
+			// 如果需要更精准，可以在 Prompt 里让 AI 决定区域，而不是在这里硬编码
 
 			let [foods, hotels] = await Promise.all([
-				this.searchPOI(`${keywordPrefix}美食`, city, '050000'), // 050000 是餐饮服务
-				this.searchPOI(`${keywordPrefix}酒店`, city, '100000'), // 100000 是住宿服务
+				this.searchPOI('美食', city, '050000'), // 050000 是餐饮服务
+				this.searchPOI('酒店', city, '100000'), // 100000 是住宿服务
 			])
 
-			// ⚠️ 降级策略：如果指定区域没搜到，尝试全市搜索（防止因区域关键词导致颗粒无收，引发AI幻觉）
-			if (district && (foods.length === 0 || hotels.length === 0)) {
-				this.logger.warn(
-					`在 [${city} ${district}] 未搜到充足数据，降级为全市搜索...`
-				)
-				const [cityFoods, cityHotels] = await Promise.all([
-					foods.length === 0
-						? this.searchPOI('美食', city, '050000')
-						: Promise.resolve([]),
-					hotels.length === 0
-						? this.searchPOI('酒店', city, '100000')
-						: Promise.resolve([]),
-				])
-
-				if (foods.length === 0) foods = cityFoods
-				if (hotels.length === 0) hotels = cityHotels
-			}
-
 			// 3. 格式化数据为 Markdown 列表供 AI 阅读
-			let context = `\n**【真实数据参考】高德地图为您找到 ${city}${district ? `(${district})` : ''} 的以下真实地点（请优先从中选择）：**\n`
+			let context = `\n**【真实数据参考】高德地图为您找到 ${city} 的以下真实地点（请优先从中选择）：**\n`
 
 			if (sights.length > 0) {
 				context += `\n🏞️ **推荐景点**：\n`
@@ -139,7 +120,7 @@ export class GaodeService {
 			}
 
 			if (foods.length > 0) {
-				context += `\n🥡 **推荐餐厅** (位于${district || city})：\n`
+				context += `\n🥡 **推荐餐厅** (位于${city})：\n`
 				foods.slice(0, 5).forEach((p) => {
 					const rating = p.biz_ext?.rating ? ` / 评分:${p.biz_ext.rating}` : ''
 					const cost = p.biz_ext?.cost ? ` / 人均:¥${p.biz_ext.cost}` : ''
@@ -149,7 +130,7 @@ export class GaodeService {
 			}
 
 			if (hotels.length > 0) {
-				context += `\n🏨 **推荐酒店** (位于${district || city})：\n`
+				context += `\n🏨 **推荐酒店** (位于${city})：\n`
 				hotels.slice(0, 5).forEach((p) => {
 					const rating = p.biz_ext?.rating ? ` / 评分:${p.biz_ext.rating}` : ''
 					const cost = p.biz_ext?.cost ? ` / 参考价:¥${p.biz_ext.cost}` : ''

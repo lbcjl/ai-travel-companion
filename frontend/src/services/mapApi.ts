@@ -39,9 +39,10 @@ export const mapApi = {
 	/**
 	 * 批量地理编码并生成地图
 	 */
-	async generateMap(locations: Location[]): Promise<MapData> {
+	async generateMap(locations: Location[], city?: string): Promise<MapData> {
 		const response = await api.post('/map/generate', {
 			locations,
+			city,
 		})
 		return response.data.data
 	},

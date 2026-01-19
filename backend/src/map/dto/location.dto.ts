@@ -26,6 +26,10 @@ export class LocationDto {
 export class GeocodeRequestDto {
 	@IsString()
 	address: string
+
+	@IsOptional()
+	@IsString()
+	city?: string
 }
 
 export class BatchGeocodeRequestDto {
@@ -33,4 +37,8 @@ export class BatchGeocodeRequestDto {
 	@ValidateNested({ each: true })
 	@Type(() => LocationDto)
 	locations: LocationDto[]
+
+	@IsOptional()
+	@IsString()
+	city?: string
 }

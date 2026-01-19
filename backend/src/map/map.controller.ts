@@ -23,7 +23,13 @@ export class MapController {
 	 */
 	@Post('generate')
 	async generateMap(@Body() dto: BatchGeocodeRequestDto) {
-		const result = await this.mapService.generateMapData(dto.locations)
+		console.log(
+			`[MapController] Received generate request. Locations: ${dto.locations.length}, City: ${dto.city}`,
+		)
+		const result = await this.mapService.generateMapData(
+			dto.locations,
+			dto.city,
+		)
 		return {
 			success: true,
 			data: result,

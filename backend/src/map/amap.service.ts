@@ -28,7 +28,7 @@ export class AmapService {
 
 		if (!apiKey) {
 			throw new Error(
-				'未配置 AMAP_WEB_API_KEY，请在 .env 文件中设置高德地图 Web 服务 API Key'
+				'未配置 AMAP_WEB_API_KEY，请在 .env 文件中设置高德地图 Web 服务 API Key',
 			)
 		}
 
@@ -46,20 +46,27 @@ export class AmapService {
 	/**
 	 * 地理编码：将地址转换为经纬度
 	 */
-	async geocode(address: string): Promise<GeoCodeResult | null> {
+	async geocode(address: string, city?: string): Promise<GeoCodeResult | null> {
 		try {
+			const params: any = {
+				key: this.apiKey,
+				address: address,
+			}
+			if (city) {
+				params.city = city
+			}
+
 			const response = await this.client.get('/v3/geocode/geo', {
-				params: {
-					key: this.apiKey,
-					address: address,
-				},
+				params,
 			})
 
 			if (response.data.status === '1' && response.data.geocodes?.length > 0) {
 				const result = response.data.geocodes[0]
 				const [lng, lat] = result.location.split(',').map(Number)
 
-				this.logger.debug(`地理编码成功: ${address} -> ${result.location}`)
+				this.logger.debug(
+					`地理编码成功: ${address} ${city || ''} -> ${result.location}`,
+				)
 
 				return {
 					name: result.formatted_address || address,
@@ -70,7 +77,7 @@ export class AmapService {
 				}
 			}
 
-			this.logger.warn(`地理编码失败: ${address}，未找到结果`)
+			this.logger.warn(`地理编码失败: ${address} (city: ${city})，未找到结果`)
 			return null
 		} catch (error) {
 			this.logger.error(`地理编码API调用失败: ${address}`, error)
@@ -81,7 +88,10 @@ export class AmapService {
 	/**
 	 * 批量地理编码
 	 */
-	async batchGeocode(locations: Location[]): Promise<GeoCodeResult[]> {
+	async batchGeocode(
+		locations: Location[],
+		city?: string,
+	): Promise<GeoCodeResult[]> {
 		const results: GeoCodeResult[] = []
 
 		for (const location of locations) {
@@ -118,13 +128,13 @@ export class AmapService {
 			// 2. 尝试使用地址进行地理编码
 			let result: GeoCodeResult | null = null
 			if (!isInvalidName(location.address)) {
-				result = await this.geocode(location.address)
+				result = await this.geocode(location.address, city)
 			}
 
 			// 3. 如果地址失败或无效，尝试使用名称
 			if (!result && location.name && !isInvalidName(location.name)) {
 				this.logger.log(`地址地理编码失败，尝试使用名称: ${location.name}`)
-				result = await this.geocode(location.name)
+				result = await this.geocode(location.name, city)
 			}
 
 			if (result) {
@@ -135,7 +145,7 @@ export class AmapService {
 				})
 			} else {
 				this.logger.warn(
-					`无法获取地址坐标: ${location.name} - ${location.address}`
+					`无法获取地址坐标: ${location.name} - ${location.address}`,
 				)
 			}
 
@@ -155,7 +165,7 @@ export class AmapService {
 			width?: number
 			height?: number
 			zoom?: number
-		}
+		},
 	): string {
 		const { width = 800, height = 600, zoom = 13 } = options || {}
 
@@ -186,7 +196,7 @@ export class AmapService {
 		if (markers) {
 			url.searchParams.append(
 				'markers',
-				`-1,https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png,0:${markers}`
+				`-1,https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png,0:${markers}`,
 			)
 		}
 

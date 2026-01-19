@@ -10,12 +10,18 @@ export class MapService {
 	/**
 	 * 为位置列表生成地图数据
 	 */
-	async generateMapData(locations: Location[]): Promise<{
+	async generateMapData(
+		locations: Location[],
+		city?: string,
+	): Promise<{
 		locations: GeoCodeResult[]
 		mapImageUrl: string
 	}> {
 		// 批量地理编码
-		const geocodedLocations = await this.amapService.batchGeocode(locations)
+		const geocodedLocations = await this.amapService.batchGeocode(
+			locations,
+			city,
+		)
 
 		if (geocodedLocations.length === 0) {
 			throw new Error('无法获取任何有效的地理位置信息')
@@ -28,7 +34,7 @@ export class MapService {
 				width: 800,
 				height: 600,
 				zoom: 13,
-			}
+			},
 		)
 
 		this.logger.log(`生成地图数据成功，位置数: ${geocodedLocations.length}`)
