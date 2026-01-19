@@ -202,6 +202,7 @@ export class LangChainService {
 				])
 
 				if (weather) {
+					this.logger.log(`⛅ 天气数据: ${weather}`)
 					weatherInfo = `\n**当前目的地(${city})天气参考**：\n${weather}\n请根据天气情况调整行程安排。`
 				}
 
@@ -213,27 +214,8 @@ export class LangChainService {
 			// 4. 搜索增强 (优先 Tavily, 降级 DuckDuckGo)
 			let searchInfo = ''
 			if (city) {
-				try {
-					const tavilyKey = this.configService.get<string>('TAVILY_API_KEY')
-
-					if (tavilyKey) {
-						// 方案 A: 使用 Tavily (更稳定，专门为 AI 优化)
-						this.logger.log(
-							`🔍 使用 Tavily 搜索 "${city} 旅游攻略" (API Key present)...`,
-						)
-						// 动态引入本地自定义工具
-						const { TavilyTool } = await import('./tavily.tool')
-						const searchTool = new TavilyTool(tavilyKey)
-
-						const searchResults = await searchTool.invoke(
-							`${city} 旅游攻略 必去景点 美食推荐`,
-						)
-						if (searchResults) {
-							searchInfo = `\n## 🌐 网络搜索实时资讯 (Tavily)\n${searchResults}\n`
-							this.logger.log(`✅ Tavily 搜索成功`)
-						}
-					} else {
-						// 方案 B: 使用 DuckDuckGo (免费，有时会被限流)
+				const performDuckDuckGo = async () => {
+					try {
 						this.logger.log(
 							`🔍 使用 DuckDuckGo 搜索 "${city} 旅游攻略" (Fallback)...`,
 						)
@@ -245,16 +227,52 @@ export class LangChainService {
 							searchInfo = `\n## 🌐 网络搜索实时资讯 (DuckDuckGo)\n${searchResults}\n`
 							this.logger.log(`✅ DuckDuckGo 搜索成功`)
 						}
+					} catch (ddgErr) {
+						if (
+							ddgErr.message?.includes('too quickly') ||
+							ddgErr.message?.includes('429')
+						) {
+							this.logger.warn(`⚠️ DuckDuckGo 限流，跳过搜索 (不影响主流程)`)
+						} else {
+							this.logger.warn(`⚠️ DuckDuckGo 搜索失败: ${ddgErr.message}`)
+						}
+					}
+				}
+
+				try {
+					const tavilyKey = this.configService.get<string>('TAVILY_API_KEY')
+
+					if (tavilyKey) {
+						// 方案 A: 使用 Tavily (更稳定，专门为 AI 优化)
+						try {
+							this.logger.log(
+								`🔍 使用 Tavily 搜索 "${city} 旅游攻略" (API Key present)...`,
+							)
+							// 动态引入本地自定义工具
+							const { TavilyTool } = await import('./tavily.tool')
+							const searchTool = new TavilyTool(tavilyKey)
+
+							const searchResults = await searchTool.invoke(
+								`${city} 旅游攻略 必去景点 美食推荐`,
+							)
+							if (searchResults) {
+								searchInfo = `\n## 🌐 网络搜索实时资讯 (Tavily)\n${searchResults}\n`
+								this.logger.log(`✅ Tavily 搜索成功`)
+							}
+						} catch (tavilyErr) {
+							this.logger.warn(
+								`⚠️ Tavily 搜索失败 (自动降级): ${tavilyErr.message}`,
+							)
+							// 降级尝试 DuckDuckGo
+							await performDuckDuckGo()
+						}
+					} else {
+						// 方案 B: 直接运行 DuckDuckGo
+						await performDuckDuckGo()
 					}
 				} catch (err) {
-					if (
-						err.message?.includes('too quickly') ||
-						err.message?.includes('429')
-					) {
-						this.logger.warn(`⚠️ 搜索请求过快被限流，本次跳过 (不影响主流程)`)
-					} else {
-						this.logger.warn(`⚠️ 搜索失败: ${err.message}`)
-					}
+					// 外层捕获，兜底
+					this.logger.error('搜索流程异常', err)
 				}
 			}
 
