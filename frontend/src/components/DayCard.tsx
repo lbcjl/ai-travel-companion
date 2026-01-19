@@ -1,5 +1,5 @@
 import type { DayItinerary } from '../hooks/useItineraryParser'
-import RouteMap from './RouteMap'
+import RouteMap, { Location as MapLocation } from './RouteMap'
 import './DayCard.css'
 
 interface DayCardProps {
@@ -58,6 +58,55 @@ export default function DayCard({ day, index }: DayCardProps) {
 							<div className='timeline-desc'>
 								{loc.description || loc.address}
 							</div>
+
+							{/* New: Highlights & Food */}
+							{(loc.highlights?.length || 0) > 0 && (
+								<div className='timeline-extra'>
+									<span className='extra-label'>✨ 亮点:</span>
+									<div className='extra-tags'>
+										{loc.highlights?.map((h, i) => (
+											<span key={i} className='highlight-tag'>
+												{h}
+											</span>
+										))}
+									</div>
+								</div>
+							)}
+
+							{(loc.food?.length || 0) > 0 && (
+								<div className='timeline-extra'>
+									<span className='extra-label'>🍜 推荐:</span>
+									<div className='extra-tags'>
+										{loc.food?.map((f, i) => (
+											<span key={i} className='food-tag'>
+												{f}
+											</span>
+										))}
+									</div>
+								</div>
+							)}
+
+							{/* New: Transportation to Next Stop */}
+							{loc.transportation && (
+								<div className='timeline-transport'>
+									<div className='transport-icon'>↓</div>
+									<div className='transport-info'>
+										<span className='transport-method'>
+											{loc.transportation.method || '前往下一站'}
+										</span>
+										{loc.transportation.duration && (
+											<span className='transport-meta'>
+												{loc.transportation.duration}
+											</span>
+										)}
+										{loc.transportation.cost && (
+											<span className='transport-meta'>
+												{loc.transportation.cost}
+											</span>
+										)}
+									</div>
+								</div>
+							)}
 						</div>
 					</div>
 				))}
@@ -65,7 +114,7 @@ export default function DayCard({ day, index }: DayCardProps) {
 
 			<div className='day-map-wrapper'>
 				<RouteMap
-					locations={day.locations}
+					locations={day.locations as unknown as MapLocation[]}
 					height='300px'
 					mapId={`day-${index}`}
 				/>

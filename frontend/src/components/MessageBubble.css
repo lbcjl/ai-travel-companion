@@ -121,24 +121,37 @@
 }
 
 .assistant .markdown-body table {
+	display: block;
+	width: 100%;
+	overflow-x: auto; /* Allow horizontal scrolling */
 	border-radius: 8px;
-	overflow: hidden;
 	box-shadow: 0 0 0 1px var(--border-color);
 	margin: 1rem 0;
+	white-space: nowrap; /* Prevent awkward wrapping in tight spaces */
+}
+
+/* Custom Scrollbar for tables */
+.assistant .markdown-body table::-webkit-scrollbar {
+	height: 6px;
+}
+.assistant .markdown-body table::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 3px;
 }
 
 .assistant .markdown-body th {
 	background: #f8fafc;
 	color: var(--text-secondary);
 	font-weight: 600;
-	font-size: 0.85rem;
-	padding: 12px;
+	font-size: 0.75rem; /* Smaller font */
+	padding: 8px 12px;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	white-space: nowrap;
 }
 
 .assistant .markdown-body td {
-	padding: 12px;
+	padding: 8px 12px;
+	font-size: 0.8rem;
 	border-color: var(--bg-hover);
 }
 

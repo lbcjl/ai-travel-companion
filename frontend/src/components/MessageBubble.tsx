@@ -3,6 +3,7 @@ import './MessageBubble.css'
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import ItinerarySummaryCard from './ItinerarySummaryCard'
 
 interface MessageBubbleProps {
 	message: Message
@@ -16,8 +17,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 	const isTravelPlan =
 		isAssistant &&
 		(message.content.includes('## 📅 每日详细行程') ||
-			message.content.includes('第1天') ||
-			(message.content.includes('|') && message.content.includes('景点')))
+			message.content.includes('| 序号 |'))
 
 	return (
 		<div className={`message-bubble ${message.role}`}>
@@ -38,19 +38,19 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
 			<div className='message-content'>
 				<div className='message-text'>
-					{/* 对于旅行计划使用卡片展示，其他消息使用 Markdown */}
+					{/* 对于旅行计划使用 Summary Card，点击展开详情 */}
 					{message.content ? (
-						isTravelPlan ? (
-							<div className='plan-confirmation-text'>
-								✅ 行程规划已生成，详情请查看右侧地图面板
-							</div>
-						) : (
-							<div className='markdown-body'>
-								<ReactMarkdown remarkPlugins={[remarkGfm]}>
-									{message.content}
-								</ReactMarkdown>
-							</div>
-						)
+						<>
+							{isTravelPlan ? (
+								<ItinerarySummaryCard content={message.content} />
+							) : (
+								<div className='markdown-body'>
+									<ReactMarkdown remarkPlugins={[remarkGfm]}>
+										{message.content}
+									</ReactMarkdown>
+								</div>
+							)}
+						</>
 					) : (
 						<div className='typing-dots-inline'>
 							<span></span>

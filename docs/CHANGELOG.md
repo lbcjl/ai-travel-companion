@@ -334,3 +334,47 @@
 - **Fixed**: Port 3000 conflict.
   - **Issue**: Frontend dev server or orphaned backend processes occupying port 3000.
   - **Action**: Provided command `netstat -ano | findstr :3000` and `taskkill` to help user terminate processes.
+
+## [2026-01-19 08:30] 修复聊天内容可见性问题 & 验证后端
+
+**Action**: 修复 UI 逻辑缺陷，验证核心服务连通性
+
+**Fix**:
+
+- **MessageBubble**: 移除了导致 AI 回复（Markdown 表格）被隐藏的 `isTravelPlan` 逻辑。
+  - **Before**: 检测到行程计划时，隐藏文本只显示“已生成行程”提示。
+  - **After**: 始终完整渲染 Markdown 内容，右侧地图作为辅助视图。保证用户不错过任何文字细节。
+
+**Verification**:
+
+- ✅ **Backend API**: 通过 curl 验证 `http://localhost:3000/api/map/geocode` 响应正常（返回北京坐标）。
+- ✅ **Frontend Code**: 审查 `RouteMap.tsx` 和 `ItineraryPanel.tsx`，确认地图交互逻辑完整。
+- ⚠️ **End-to-End**: 浏览器自动化测试环境受限，需人工验证最终 UI 效果。
+
+**UI Fix (2026-01-19 08:35]**:
+
+- **Issue**: 行程表格过宽导致聊天气泡布局崩坏（挡住内容）。
+- **Fix**: 在 `MessageBubble.css` 中为 Markdown 表格添加横向滚动 (`overflow-x: auto`)，并减小字体和内边距，实现更紧凑的响应式布局。
+
+**Next**: 人工测试真实对话流程，优化地图加载状态。
+
+## [2026-01-19 08:45] UI 重构 - 行程概览卡片
+
+**Action**: 为了解决聊天窗口信息过载问题，引入了可折叠的“行程概览卡片”。
+
+**Changes**:
+
+- **New Component**: `ItinerarySummaryCard` - 只显示关键指标（天数/景点数/总预算）和简单引导。
+- **Refactor**: 提取 `parseMarkdownTable` 到 `utils/itineraryParser.ts`，实现 parsing 逻辑复用（无副作用）。
+- **Interaction**: AI 生成的复杂行程表默认折叠，用户点击可展开详情；同时引导用户查看右侧地图面板。
+- **Result**: 对话流更加清爽，重点突出。
+
+## [2026-01-19 08:50] UI 交互优化 - 详情右移
+
+**Action**: 应用户建议，取消聊天内的“展开详情”，将所有丰富信息转移至右侧面板。
+
+**Changes**:
+
+- **Enhanced**: `DayCard`(Right Panel) 新增“亮点(Highlights)”、“美食推荐(Food)”和“交通(Transportation)”展示区域。
+- **Simplified**: `MessageBubble` 不再提供内联展开功能，仅展示 `ItinerarySummaryCard`。
+- **UX**: 确立了“左侧对话概览，右侧详情交互”的操作模式。
