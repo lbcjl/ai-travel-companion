@@ -40,7 +40,7 @@
 
 ```bash
 git clone <repository-url>
-cd study
+cd AlTravelCompanion
 ```
 
 2. **安装依赖**
@@ -82,7 +82,7 @@ pnpm dev:frontend # 前端: http://localhost:5173
 ## 📁 项目结构
 
 ```
-study/
+AlTravelCompanion/
 ├── docs/               # 项目文档
 ├── frontend/           # React 前端应用
 ├── backend/            # NestJS 后端服务
