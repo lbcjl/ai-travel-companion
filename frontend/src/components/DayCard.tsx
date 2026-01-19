@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { DayItinerary } from '../hooks/useItineraryParser'
 import RouteMap, { Location as MapLocation } from './RouteMap'
 import './DayCard.css'
@@ -8,6 +10,7 @@ interface DayCardProps {
 }
 
 export default function DayCard({ day, index }: DayCardProps) {
+	const isOverview = day.day === '行程总览'
 	const title = day.day || `第 ${index + 1} 天`
 
 	// 计算每日总花销
@@ -20,11 +23,13 @@ export default function DayCard({ day, index }: DayCardProps) {
 		}, 0)
 
 	return (
-		<div className='day-card'>
+		<div className={`day-card ${isOverview ? 'overview-card' : ''}`}>
 			<div className='day-header'>
-				<div className='day-badge'>{index + 1}</div>
+				<div className={`day-badge ${isOverview ? 'overview-badge' : ''}`}>
+					{isOverview ? '序' : index}
+				</div>
 				<div className='day-title-section'>
-					<h3>{title}</h3>
+					<h3>{isOverview ? '行程亮点与准备' : title}</h3>
 					<div className='day-meta'>
 						{day.weather && (
 							<span className='weather-tag' title='天气'>
@@ -39,6 +44,16 @@ export default function DayCard({ day, index }: DayCardProps) {
 					</div>
 				</div>
 			</div>
+
+			{/* New: Day Description (Theme/Intro) */}
+			{day.description && (
+				<div className='day-description markdown-body'>
+					{/* 使用 Markdown 渲染描述，解决纯文本堆砌问题 */}
+					<ReactMarkdown remarkPlugins={[remarkGfm]}>
+						{day.description}
+					</ReactMarkdown>
+				</div>
+			)}
 
 			<div className='day-timeline'>
 				{day.locations.map((loc, idx) => (
@@ -119,6 +134,18 @@ export default function DayCard({ day, index }: DayCardProps) {
 					mapId={`day-${index}`}
 				/>
 			</div>
+
+			{/* New: Tips Section */}
+			{day.tips && day.tips.length > 0 && (
+				<div className='day-tips'>
+					<div className='tips-header'>💡 实用小贴士</div>
+					<ul className='tips-list'>
+						{day.tips.map((tip, i) => (
+							<li key={i}>{tip.replace(/^-\s*/, '')}</li>
+						))}
+					</ul>
+				</div>
+			)}
 		</div>
 	)
 }

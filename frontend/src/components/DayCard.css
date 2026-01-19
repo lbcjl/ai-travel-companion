@@ -269,3 +269,96 @@
 	margin-top: 24px;
 	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
+/* Day Description */
+.day-description {
+	margin-bottom: 20px;
+	padding: 16px 20px;
+	background: #f8fafc;
+	border-left: 3px solid var(--primary-color);
+	border-radius: 0 var(--radius-md) var(--radius-md) 0;
+	font-size: 0.95rem;
+	color: var(--text-secondary);
+	line-height: 1.7;
+}
+
+/* Markdown Styles in Description */
+.day-description.markdown-body p {
+	margin-bottom: 12px;
+	line-height: 1.6;
+}
+.day-description.markdown-body p:last-child {
+	margin-bottom: 0;
+}
+.day-description.markdown-body h3,
+.day-description.markdown-body h4 {
+	font-size: 1rem;
+	margin-top: 16px;
+	margin-bottom: 8px;
+	color: var(--text-primary);
+	font-weight: 600;
+}
+.day-description.markdown-body ul,
+.day-description.markdown-body ol {
+	padding-left: 20px;
+	margin-bottom: 12px;
+}
+.day-description.markdown-body li {
+	margin-bottom: 4px;
+}
+
+/* Overview Card Special Styles */
+.day-card.overview-card {
+	border-color: #cbd5e1;
+	background: #f8fafc;
+}
+
+.day-badge.overview-badge {
+	background: #64748b; /* Slate-500 */
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+/* Tips Section */
+.day-tips {
+	margin-top: 20px;
+	background: #fffbeb;
+	border: 1px solid #fcd34d;
+	border-radius: var(--radius-md);
+	padding: 16px;
+}
+
+.tips-header {
+	font-weight: 700;
+	color: #92400e;
+	margin-bottom: 12px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.tips-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.tips-list li {
+	position: relative;
+	padding-left: 20px;
+	margin-bottom: 6px;
+	font-size: 0.9rem;
+	color: #78350f;
+	line-height: 1.5;
+}
+
+.tips-list li::before {
+	content: '•';
+	position: absolute;
+	left: 6px;
+	color: #d97706;
+}
+
+.tips-list li:last-child {
+	margin-bottom: 0;
+}

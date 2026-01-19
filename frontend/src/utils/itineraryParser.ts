@@ -24,6 +24,8 @@ export interface DayItinerary {
 	locations: Location[]
 	weather?: string
 	dailyCost?: number
+	description?: string // Day theme or intro
+	tips?: string[] // Tips for the day
 }
 
 /**
@@ -37,7 +39,10 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 	let currentLocations: any[] = []
 	let currentWeather: string | undefined
 	let currentDailyCost: number | undefined
+	let currentDescription: string[] = [] // Lines before table
+	let currentTips: string[] = [] // Lines after table
 	let insideTable = false
+	let hasSeenTable = false // To distinguish description (before) vs tips (after)
 
 	// 动态表头索引
 	let headerMap: { [key: string]: number } = {}
@@ -45,45 +50,59 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 	const flushCurrentDay = () => {
 		if (currentLocations.length > 0) {
 			const existingDay = days.find((d) => d.day === currentDayTitle)
+			const description =
+				currentDescription.length > 0
+					? currentDescription.join('\n').trim()
+					: undefined
+			const tips = currentTips.length > 0 ? [...currentTips] : undefined
+
 			if (existingDay) {
 				existingDay.locations = [...existingDay.locations, ...currentLocations]
-				// 如果已有天气信息，保留；否则尝试更新
 				if (!existingDay.weather && currentWeather)
 					existingDay.weather = currentWeather
 				if (!existingDay.dailyCost && currentDailyCost)
 					existingDay.dailyCost = currentDailyCost
+				if (!existingDay.description && description)
+					existingDay.description = description
+				if (tips) {
+					existingDay.tips = existingDay.tips
+						? [...existingDay.tips, ...tips]
+						: tips
+				}
 			} else {
 				days.push({
 					day: currentDayTitle,
 					locations: [...currentLocations],
 					weather: currentWeather,
 					dailyCost: currentDailyCost,
+					description,
+					tips,
 				})
 			}
 			currentLocations = []
-			// 重置临时状态，但保留当前天标题直到下一个标题出现
+			currentDescription = []
+			currentTips = []
 			currentWeather = undefined
 			currentDailyCost = undefined
+			hasSeenTable = false
 		}
 	}
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i].trim()
 
-		// 1. 检测日期标题
+		// 1. Detect Day Title
 		const dayMatch = line.match(
 			/#{2,4}\s*(第[\d一二三四五六七八九十]+天|Day\s*\d+|D\d+)/i,
 		)
 		if (dayMatch) {
-			if (insideTable) {
-				insideTable = false
-			}
+			if (insideTable) insideTable = false
 			flushCurrentDay()
 			currentDayTitle = dayMatch[1]
 			continue
 		}
 
-		// 1.5 检测天气和花销
+		// 1.5 Detect Weather & Cost (Metadata)
 		const weatherMatch = line.match(
 			/>\s*\*\*(?:天气|Weather)\*\*[：:]\s*([^\n]+)/i,
 		)
@@ -104,15 +123,15 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 			continue
 		}
 
-		// 2. 检测表格开始 (表头行)
+		// 2. Detect Table Start
 		if (
 			line.startsWith('|') &&
 			line.includes('序号') &&
 			(line.includes('名称') || line.includes('地点'))
 		) {
 			insideTable = true
+			hasSeenTable = true
 
-			// 解析表头，建立索引映射
 			const headers = line
 				.split('|')
 				.slice(1, -1)
@@ -139,31 +158,26 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 					headerMap['food'] = idx
 				else if (h.includes('交通')) headerMap['transportation'] = idx
 			})
-
 			continue
 		}
 
-		// 3. 跳过分隔行
+		// 3. Skip Divider
 		if (insideTable && line.startsWith('|') && line.includes('---')) {
 			continue
 		}
 
-		// 4. 解析表格内容行
+		// 4. Parse Table Content
 		if (insideTable && line.startsWith('|')) {
 			const dirtyValues = line.split('|')
-
-			// 确保行是完整的（前后都有 |）
 			if (dirtyValues.length < 3) continue
 
 			const cleanValues = dirtyValues.slice(1, -1).map((v) => v.trim())
-
-			// 辅助函数：根据表头获取值
 			const getVal = (key: string) => {
 				const idx = headerMap[key]
 				if (idx !== undefined && idx < cleanValues.length) {
 					return cleanValues[idx]
 				}
-				// 回退机制
+				// Parsing fallback
 				if (key === 'order') return cleanValues[0]
 				if (key === 'time') return cleanValues[1]
 				if (key === 'type') return cleanValues[2]
@@ -174,7 +188,6 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 
 			const name = getVal('name')
 			const address = getVal('address')
-
 			const isTimeLike = (str: string) =>
 				/^[\d:：\s-]+$/.test(str) && str.includes(':')
 
@@ -207,7 +220,6 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 				location.cost = getVal('cost')
 				location.description = getVal('description')
 
-				// 解析数组字段
 				const highlightsStr = getVal('highlights')
 				location.highlights =
 					highlightsStr && highlightsStr !== '-'
@@ -224,12 +236,24 @@ export const parseMarkdownTable = (content: string): DayItinerary[] => {
 				if (transportStr && transportStr !== '-') {
 					location.transportation = { method: transportStr }
 				}
-
 				currentLocations.push(location)
 			}
 		} else if (insideTable && line === '') {
 			insideTable = false
-			flushCurrentDay()
+			// Do NOT flush here, because we might have tips after the table
+		} else if (!insideTable && line) {
+			// 5. Capture text content (Narrative or Tips)
+			// Filter out metadata markers we already processed
+			if (!line.startsWith('>')) {
+				if (!hasSeenTable) {
+					// Before table -> Description / Theme
+					currentDescription.push(line)
+				} else {
+					// After table -> Tips
+					// Simple heuristic: if it looks like a list item or note
+					currentTips.push(line)
+				}
+			}
 		}
 	}
 

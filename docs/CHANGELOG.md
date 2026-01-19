@@ -378,3 +378,22 @@
 - **Enhanced**: `DayCard`(Right Panel) 新增“亮点(Highlights)”、“美食推荐(Food)”和“交通(Transportation)”展示区域。
 - **Simplified**: `MessageBubble` 不再提供内联展开功能，仅展示 `ItinerarySummaryCard`。
 - **UX**: 确立了“左侧对话概览，右侧详情交互”的操作模式。
+
+## [2026-01-19 09:00] 解析逻辑增强 - 叙事内容捕获
+
+**Action**: 为了解决“右侧细节不足”的问题，重写了解析器以捕获所有非表格文本。
+
+**Changes**:
+
+- **Parsing**: `itineraryParser.ts` 现在能识别表格前的“每日主题(Description)”和表格后的“避坑指南(Tips)”。
+- **UI**: `DayCard` 顶部新增了主题描述区域，底部新增了黄色背景的 Tips 提示框。
+- **Result**: AI 回复中的每一句话现在都能在界面上找到对应位置，不再有信息丢失。
+
+## [2026-01-19 09:10] UI 样式深化 - Markdown 渲染与总览区分
+
+**Action**: 针对“所有信息挤在一起”和“样式简陋”的反馈进行优化。
+
+**Changes**:
+
+- **Format**: `DayCard` 的描述区域引入 `ReactMarkdown`，支持标题、列表、加粗等富文本格式，解决纯文本堆砌问题。
+- **Distinction**: 为自动生成的“行程总览”（通常被误标为第1天）增加了独立样式：灰色 Badge 显示“序”，背景色微调，与正式行程区分开。
