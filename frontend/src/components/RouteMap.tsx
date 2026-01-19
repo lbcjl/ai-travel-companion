@@ -102,13 +102,39 @@ export default function RouteMap({
 				'个地点',
 			)
 
+			// [Screenshot Fix] Monkey patch getContext to force preserveDrawingBuffer
+			// This allows html2canvas to capture the WebGL canvas
+			const originalGetContext = HTMLCanvasElement.prototype.getContext
+			HTMLCanvasElement.prototype.getContext = function (
+				type: string,
+				attributes?: any,
+			) {
+				if (
+					type === 'webgl' ||
+					type === 'experimental-webgl' ||
+					type === 'webgl2'
+				) {
+					attributes = {
+						...attributes,
+						preserveDrawingBuffer: true,
+					}
+				}
+				return originalGetContext.call(this, type, attributes) as any
+			}
+
 			// 创建地图实例
-			map = new AMap.Map(mapContainer.current, {
-				zoom: 13,
-				center: [locations[0].lng, locations[0].lat],
-				viewMode: '3D', // 确保 viewMode 一致
-				mapStyle: 'amap://styles/whitesmoke',
-			})
+			try {
+				map = new AMap.Map(mapContainer.current, {
+					resizeEnable: true,
+					viewMode: '2D',
+					zoom: 11,
+					center: [locations[0].lng, locations[0].lat],
+					mapStyle: 'amap://styles/whitesmoke',
+				})
+			} finally {
+				// Restore original method
+				HTMLCanvasElement.prototype.getContext = originalGetContext
+			}
 
 			// 添加自定义标记
 			locations.forEach((location, index) => {
