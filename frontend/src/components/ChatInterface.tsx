@@ -129,7 +129,8 @@ export default function ChatInterface() {
 					</div>
 					{conversation && (
 						<button onClick={startNewConversation} className='new-chat-btn'>
-							<span className='text-lg'>+</span> 新对话
+							<span className='text-lg'>+</span>{' '}
+							<span className='btn-text'>新对话</span>
 						</button>
 					)}
 				</header>

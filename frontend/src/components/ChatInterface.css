@@ -149,6 +149,7 @@
 	background: rgba(255, 255, 255, 0.6);
 	/* border-top: 1px solid rgba(255, 255, 255, 0.3); */
 	z-index: 10;
+	padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
 }
 
 /* Right Panel: Map Container */
@@ -212,7 +213,7 @@
 	.chat-layout {
 		display: block; /* Disable grid for mobile manual toggle */
 		padding: 0;
-		height: calc(100vh - 60px); /* Leave room for bottom nav */
+		height: calc(100dvh - 60px); /* Leave room for bottom nav */
 		overflow: hidden;
 		position: relative;
 	}
@@ -249,5 +250,57 @@
 
 	.bottom-nav {
 		display: flex;
+	}
+
+	/* Mobile Header Optimization */
+	.chat-header {
+		padding: var(--spacing-sm) var(--spacing-md);
+		gap: var(--spacing-sm); /* Add gap control */
+	}
+
+	/* Target the left container (Menu + Title) */
+	.chat-header > div:first-child {
+		flex: 1; /* Allow it to take available space */
+		min-width: 0; /* Enable flex item shrinking/truncation */
+		margin-right: var(--spacing-sm);
+	}
+
+	.chat-header h1 {
+		font-size: 1rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.menu-btn {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%; /* Circle */
+		padding: 0;
+		flex-shrink: 0;
+	}
+
+	.new-chat-btn {
+		padding: 0 !important;
+		font-size: 1.4rem !important;
+		border-radius: 50% !important;
+		width: 36px !important;
+		height: 36px !important;
+		min-width: 36px !important;
+		max-width: 36px !important; /* Force limit */
+		min-height: 36px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		flex-shrink: 0 !important;
+		flex-grow: 0 !important; /* No growing */
+		background: var(--primary-color) !important;
+		color: white !important;
+		border: none !important;
+		box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3) !important;
+	}
+
+	.new-chat-btn .btn-text {
+		display: none !important;
 	}
 }

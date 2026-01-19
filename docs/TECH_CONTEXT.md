@@ -4,12 +4,19 @@
 
 ### 整体结构（Monorepo）
 
+> **Cloud Architecture**:
+>
+> - **Frontend**: Vercel (Edge Network)
+> - **Backend**: Render (Web Service)
+> - **Database**: Neon / Supabase (PostgreSQL)
+
 ```
 study/
 ├── docs/                    # 📚 项目文档
 │   ├── REQUIREMENTS.md      # 需求文档
 │   ├── CHANGELOG.md         # 开发日志
-│   └── TECH_CONTEXT.md      # 本文件
+│   ├── TECH_CONTEXT.md      # 技术架构
+│   └── DEPLOY.md            # 🚀 部署指南
 ├── frontend/                # 🎨 React 前端
 │   ├── src/
 │   │   ├── components/      # UI 组件

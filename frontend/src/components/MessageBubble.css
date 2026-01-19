@@ -20,7 +20,8 @@
 }
 
 .message-bubble.user {
-	flex-direction: row-reverse;
+	flex-direction: row;
+	justify-content: flex-end;
 }
 
 /* Avatar Styling */

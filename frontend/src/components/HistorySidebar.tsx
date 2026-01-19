@@ -114,9 +114,6 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
 
 			<div className={`history-sidebar ${isOpen ? 'open' : ''}`}>
 				<div className='sidebar-header'>
-					<button className='new-chat-btn' onClick={onNewChat}>
-						<span className='icon'>+</span> 开启新旅程
-					</button>
 					<button className='close-sidebar-btn' onClick={onClose}>
 						×
 					</button>

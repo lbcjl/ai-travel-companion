@@ -114,6 +114,18 @@ pnpm build:backend
 pnpm build:frontend
 ```
 
+## ☁️ 部署 (Deployment)
+
+本项目采用了 **Neon + Render + Vercel** 的免费云端部署架构。
+
+👉 **[点击查看详细部署指南 (docs/DEPLOY.md)](docs/DEPLOY.md)**
+
+该指南包含：
+
+- 数据库 (PostgreSQL) 的申请与连接
+- 后端 (Render) 的部署配置
+- 前端 (Vercel) 的部署与代理设置
+
 ## 📝 开发文档
 
 - [需求文档](docs/REQUIREMENTS.md)

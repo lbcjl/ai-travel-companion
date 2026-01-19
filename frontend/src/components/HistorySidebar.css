@@ -43,28 +43,6 @@
 	gap: 12px;
 }
 
-.new-chat-btn {
-	flex: 1;
-	background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-	color: white;
-	border: none;
-	padding: 12px;
-	border-radius: 12px;
-	font-weight: 600;
-	cursor: pointer;
-	box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
-	transition: all 0.2s;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-}
-
-.new-chat-btn:hover {
-	transform: translateY(-1px);
-	box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
-}
-
 .close-sidebar-btn {
 	background: transparent;
 	border: none;
@@ -187,4 +165,12 @@
 	background: #fee2e2;
 	border-color: #fecaca;
 	color: #ef4444;
+}
+
+@media (max-width: 768px) {
+	/* Show delete button always on mobile (no hover) */
+	.delete-btn {
+		opacity: 1 !important;
+		background: rgba(0, 0, 0, 0.05); /* Slight background to make it tap-able */
+	}
 }
