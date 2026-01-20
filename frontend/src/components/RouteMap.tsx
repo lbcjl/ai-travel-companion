@@ -193,43 +193,46 @@ export default function RouteMap({
 					// setWarning('跨城行程，显示直线路径') // Optional warning
 					fallbackToPolyline(map, validLocations)
 				} else {
-					// 创建驾车路线规划实例
-					driving = new AMap.Driving({
-						map: map,
-						hideMarkers: true,
-						showTraffic: false,
-						autoFitView: true,
+					// 加载驾车路线规划插件
+					AMap.plugin('AMap.Driving', () => {
+						// 创建驾车路线规划实例
+						driving = new AMap.Driving({
+							map: map,
+							hideMarkers: true,
+							autoFitView: true,
+						})
+
+						// 构造起点、终点和途经点
+						const start = new AMap.LngLat(
+							validLocations[0].lng,
+							validLocations[0].lat,
+						)
+						const end = new AMap.LngLat(
+							validLocations[validLocations.length - 1].lng,
+							validLocations[validLocations.length - 1].lat,
+						)
+
+						// 构造途经点（Driving 支持最多16个途经点）
+						const waypoints = validLocations
+							.slice(1, -1)
+							.map((loc) => new AMap.LngLat(loc.lng, loc.lat))
+
+						// 调用驾车路线规划
+						driving.search(
+							start,
+							end,
+							{ waypoints },
+							(status: string, result: any) => {
+								if (status === 'complete') {
+									console.log('驾车路线规划成功')
+								} else {
+									console.warn('路线规划失败:', result)
+									console.warn('路线规划服务不可用，已切换为直线模式')
+									fallbackToPolyline(map, validLocations)
+								}
+							},
+						)
 					})
-
-					// 构造起点、终点和途经点
-					const start = new AMap.LngLat(
-						validLocations[0].lng,
-						validLocations[0].lat,
-					)
-					const end = new AMap.LngLat(
-						validLocations[validLocations.length - 1].lng,
-						validLocations[validLocations.length - 1].lat,
-					)
-
-					const waypoints = validLocations
-						.slice(1, -1)
-						.map((loc) => new AMap.LngLat(loc.lng, loc.lat))
-
-					driving.search(
-						start,
-						end,
-						{ waypoints },
-						(status: string, result: any) => {
-							if (status === 'complete') {
-								console.log('真实路线规划成功')
-							} else {
-								console.warn('路线规划失败:', result)
-								// setWarning('路线规划服务不可用，已切换为直线模式')
-								console.warn('路线规划服务不可用，已切换为直线模式')
-								fallbackToPolyline(map, validLocations)
-							}
-						},
-					)
 				}
 			} else {
 				map.setFitView()
