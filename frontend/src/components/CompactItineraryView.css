@@ -5,6 +5,34 @@
 	max-width: 240px; /* Further constrained width */
 }
 
+.compact-header {
+	margin-bottom: 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.header-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 6px;
+}
+
+.header-stats {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.stat-item {
+	font-size: 12px;
+	padding: 2px 8px;
+	background: rgba(59, 130, 246, 0.1);
+	color: #3b82f6;
+	border-radius: 4px;
+	font-weight: 500;
+}
+
 .compact-list {
 	display: flex;
 	flex-direction: column;

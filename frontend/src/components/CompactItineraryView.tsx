@@ -9,15 +9,45 @@ interface CompactItineraryViewProps {
 export default function CompactItineraryView({
 	content,
 }: CompactItineraryViewProps) {
+	// 先解析days
 	const days = useMemo(() => {
 		const { days } = parseItineraryContent(content)
 		return days
 	}, [content])
 
+	// 计算总览信息
+	const { totalCost, locationCount } = useMemo(() => {
+		let cost = 0
+		let count = 0
+		days.forEach((day) => {
+			count += day.locations.length
+			if (day.dailyCost) {
+				cost += day.dailyCost
+			} else {
+				day.locations.forEach((loc) => {
+					const costMatch = loc.cost?.match(/\d+/)
+					if (costMatch) cost += parseInt(costMatch[0])
+				})
+			}
+		})
+		return { totalCost: cost, locationCount: count }
+	}, [days])
+
 	if (days.length === 0) return null
 
 	return (
 		<div className='compact-itinerary-view'>
+			{/* 统计信息头部 */}
+			<div className='compact-header'>
+				<div className='header-title'>{days.length} 天旅行规划</div>
+				<div className='header-stats'>
+					{totalCost > 0 && (
+						<span className='stat-item'>💰 约¥{totalCost}</span>
+					)}
+					<span className='stat-item'>📍 {locationCount}个地点</span>
+				</div>
+			</div>
+
 			<div className='compact-list'>
 				{days.slice(0, 3).map((day, idx) => (
 					<div key={idx} className='compact-day-item'>

@@ -40,7 +40,6 @@ export default function ItinerarySummaryCard({
 	return (
 		<div className='itinerary-summary-card glass-panel'>
 			<div className='card-content'>
-				<div className='card-icon'>✈️</div>
 				<div className='card-info'>
 					<h3>{days} 天旅行规划</h3>
 					<div className='card-stats'>
@@ -57,7 +56,6 @@ export default function ItinerarySummaryCard({
 					</div>
 				</div>
 			</div>
-			{/* <div className='card-tip'>地图与详细行程已在右侧面板准备就绪</div> */}
 		</div>
 	)
 }

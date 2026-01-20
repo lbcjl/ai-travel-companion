@@ -199,17 +199,26 @@ export class ChatService {
 	 * 获取所有会话列表 (仅返回属于当前用户的会话)
 	 */
 	async getConversations(userId: string | null): Promise<Conversation[]> {
+		// 添加调试日志
+		this.logger.log(`getConversations called with userId: ${userId}`)
+
 		// 如果是 Guest (userId null)，目前策略是看不到任何历史（或只能看到本地存储的 ids，这里后端简单返回空）
 		// 或者后期可以支持根据 deviceId 查
 		if (!userId) {
+			this.logger.warn('No userId provided, returning empty conversations')
 			return []
 		}
 
-		return this.conversationRepo.find({
+		const conversations = await this.conversationRepo.find({
 			where: { userId },
 			relations: ['messages'],
 			order: { updatedAt: 'DESC' },
 		})
+
+		this.logger.log(
+			`Found ${conversations.length} conversations for user ${userId}`,
+		)
+		return conversations
 	}
 
 	/**
