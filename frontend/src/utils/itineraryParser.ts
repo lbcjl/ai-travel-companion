@@ -31,10 +31,15 @@ export interface DayItinerary {
 /**
  * 解析Markdown表格行，按天分组
  */
+export interface ParseResult {
+	days: DayItinerary[]
+	city?: string
+}
+
 /**
  * 解析行程内容 (支持 JSON 和 Markdown 兼容)
  */
-export const parseItineraryContent = (content: string): DayItinerary[] => {
+export const parseItineraryContent = (content: string): ParseResult => {
 	// 1. 尝试解析 JSON
 	try {
 		// 移除可能存在的 Markdown 代码块标记
@@ -52,46 +57,52 @@ export const parseItineraryContent = (content: string): DayItinerary[] => {
 		if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
 			const data = JSON.parse(jsonStr)
 
-			// Case A: 完整方案结构 { type: "plan", itinerary: { days: [] } }
+			// Case A: 完整方案结构 { type: "plan", itinerary: { city: "xxx", days: [] } }
 			if (
 				data.type === 'plan' &&
 				data.itinerary &&
 				Array.isArray(data.itinerary.days)
 			) {
-				return data.itinerary.days.map((day: any) => ({
-					day: `Day ${day.day}`,
-					description: day.description || '',
-					weather: day.weather || '',
-					dailyCost: day.dailyCost,
-					tips: day.tips || [],
-					locations: Array.isArray(day.schedule)
-						? day.schedule.map((item: any, idx: number) => ({
-								order: idx + 1,
-								time: item.time,
-								name: item.name,
-								type: item.type,
-								address: item.address,
-								duration: item.duration,
-								cost: item.cost,
-								description: item.description,
-								highlights: item.highlights,
-								food: item.food,
-								transportation: item.transportation,
-							}))
-						: [],
-				}))
+				return {
+					city: data.itinerary.city,
+					days: data.itinerary.days.map((day: any) => ({
+						day: `Day ${day.day}`,
+						description: day.description || '',
+						weather: day.weather || '',
+						dailyCost: day.dailyCost,
+						tips: day.tips || [],
+						locations: Array.isArray(day.schedule)
+							? day.schedule.map((item: any, idx: number) => ({
+									order: idx + 1,
+									time: item.time,
+									name: item.name,
+									type: item.type,
+									address: item.address,
+									duration: item.duration,
+									cost: item.cost,
+									description: item.description,
+									highlights: item.highlights,
+									food: item.food,
+									transportation: item.transportation,
+								}))
+							: [],
+					})),
+				}
 			}
 
 			// Case B: 如果 AI 只返回了 itinerary 对象
 			if (data.itinerary && Array.isArray(data.itinerary.days)) {
-				return data.itinerary.days.map((day: any) => ({
-					day: `Day ${day.day}`,
-					description: day.description || '',
-					weather: day.weather || '',
-					dailyCost: day.dailyCost,
-					tips: day.tips || [],
-					locations: Array.isArray(day.schedule) ? day.schedule : [],
-				}))
+				return {
+					city: data.itinerary.city,
+					days: data.itinerary.days.map((day: any) => ({
+						day: `Day ${day.day}`,
+						description: day.description || '',
+						weather: day.weather || '',
+						dailyCost: day.dailyCost,
+						tips: day.tips || [],
+						locations: Array.isArray(day.schedule) ? day.schedule : [],
+					})),
+				}
 			}
 		}
 	} catch (e) {
@@ -100,7 +111,7 @@ export const parseItineraryContent = (content: string): DayItinerary[] => {
 	}
 
 	// 2. 回退到 Markdown 表格解析 (兼容旧数据)
-	return parseMarkdownTable(content)
+	return { days: parseMarkdownTable(content) }
 }
 
 /**

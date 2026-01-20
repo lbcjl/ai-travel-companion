@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ItinerarySummaryCard from './ItinerarySummaryCard'
 import CompactItineraryView from './CompactItineraryView'
+import QuestionCard from './QuestionCard'
 import Avatar from './Avatar'
 
 interface MessageBubbleProps {
@@ -38,7 +39,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 	const isJsonPlan = isTravelPlan && message.content.trim().startsWith('{')
 
 	// Parsing Logic for JSON Question
-	let displayContent = message.content
+	let displayContent: any = message.content
 	try {
 		if (
 			!isTravelPlan &&
@@ -46,8 +47,19 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 			message.content.trim().startsWith('{')
 		) {
 			const parsed = JSON.parse(message.content)
-			if (parsed.type === 'question' && parsed.content) {
-				displayContent = parsed.content
+			if (parsed.type === 'question') {
+				// Support both new structured format and legacy string format
+				if (parsed.questions && Array.isArray(parsed.questions)) {
+					displayContent = {
+						intro: parsed.message || parsed.content,
+						questions: parsed.questions,
+					}
+				} else if (parsed.content) {
+					displayContent = {
+						intro: parsed.content,
+						questions: [],
+					}
+				}
 			}
 		}
 	} catch (e) {
@@ -83,14 +95,20 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
 					{/* Main Text Content */}
 					{message.content && (
-						<div className='markdown-body'>
-							{isJsonPlan ? (
-								<CompactItineraryView content={message.content} />
-							) : (
-								<ReactMarkdown remarkPlugins={[remarkGfm]}>
-									{displayContent}
-								</ReactMarkdown>
-							)}
+						<div className='message-text'>
+							<div className='markdown-body'>
+								{isJsonPlan ? (
+									<CompactItineraryView content={message.content} />
+								) : isAssistant &&
+								  displayContent !== message.content && // Extracted from JSON
+								  !isTravelPlan ? (
+									<QuestionCard data={displayContent} />
+								) : (
+									<ReactMarkdown remarkPlugins={[remarkGfm]}>
+										{displayContent}
+									</ReactMarkdown>
+								)}
+							</div>
 						</div>
 					)}
 				</div>

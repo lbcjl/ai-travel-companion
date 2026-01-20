@@ -1,0 +1,78 @@
+.question-card {
+	/* Flattened display for integration in MessageBubble */
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.question-card.simple {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 0;
+}
+
+.question-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #f1f5f9;
+}
+
+.question-header .icon {
+	font-size: 1.25rem;
+}
+
+.question-header .title {
+	font-weight: 600;
+	color: #0f172a;
+	font-size: 0.95rem;
+}
+
+.question-intro {
+	color: #475569;
+	font-size: 0.9rem;
+	margin-bottom: 16px;
+}
+
+.question-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.question-item {
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	padding: 12px;
+	font-size: 0.9rem;
+	color: #1e293b;
+	transition: all 0.2s;
+}
+
+.question-item:hover {
+	border-color: #3b82f6;
+	background: #eff6ff;
+}
+
+/* Remove default P structure from markdown inside item for cleaner layout */
+.question-item p {
+	margin: 0;
+}
+
+/* Make bold text in questions pop */
+.question-item strong {
+	color: #2563eb;
+}
+
+.question-outro {
+	color: #94a3b8;
+	font-size: 0.85rem;
+	font-style: italic;
+	border-top: 1px solid #f1f5f9;
+	padding-top: 12px;
+}

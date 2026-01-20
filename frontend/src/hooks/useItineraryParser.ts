@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react'
 import { mapApi } from '../services/mapApi'
-import {
-	parseItineraryContent,
-	DayItinerary,
-	Location,
-} from '../utils/itineraryParser'
+import { parseItineraryContent, DayItinerary } from '../utils/itineraryParser'
 
 export type { DayItinerary }
 
@@ -25,72 +21,77 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 			return
 		}
 		console.log('Parsing itinerary content...')
-		const parsedDays = parseItineraryContent(content)
+		console.log('Parsing itinerary content...')
+		const { days: parsedDays, city: parsedCity } =
+			parseItineraryContent(content)
 
 		if (parsedDays.length > 0) {
 			setLoading(true)
 			setParsedContent(content)
 
-			// 尝试从内容中提取城市信息（上下文）
-			// 匹配模式： "从X出发去Y玩", "Arrive in Y", "Y 3天旅行", 或元数据标签
-			let detectedCity: string | undefined
-			const lines = content.split('\n').slice(0, 15) // Check first 15 lines
+			// 尝试从内容中提取城市信息（优先使用解析出的城市）
+			let detectedCity: string | undefined = parsedCity
 
-			// 0. Metadata Tag (High Priority)
-			// Format: <!-- DESTINATION_CITY: Shanghai -->
-			const metaMatch = content.match(
-				/<!--\s*DESTINATION_CITY:\s*([\u4e00-\u9fa5]{2,10})\s*-->/,
-			)
-			if (metaMatch) {
-				detectedCity = metaMatch[1]
-			} else {
-				const invalidCities = [
-					'住宿',
-					'交通',
-					'用餐',
-					'景点',
-					'推荐',
-					'行程',
-					'攻略',
-					'指南',
-					'计划',
-					'及',
-					'往返',
-				]
+			if (!detectedCity) {
+				const lines = content.split('\n').slice(0, 15) // Check first 15 lines
 
-				// Fallback to heuristics
-				for (const line of lines) {
-					const cleanLine = line.replace(/[*#]/g, '').trim() // Remove markdown chars
+				// 0. Metadata Tag (High Priority)
+				// Format: <!-- DESTINATION_CITY: Shanghai -->
+				const metaMatch = content.match(
+					/<!--\s*DESTINATION_CITY:\s*([\u4e00-\u9fa5]{2,10})\s*-->/,
+				)
+				if (metaMatch) {
+					detectedCity = metaMatch[1]
+				} else {
+					const invalidCities = [
+						'住宿',
+						'交通',
+						'用餐',
+						'景点',
+						'推荐',
+						'行程',
+						'攻略',
+						'指南',
+						'计划',
+						'及',
+						'往返',
+					]
 
-					// 1. Explicit labels: "目的地：厦门"
-					const destMatch = cleanLine.match(
-						/(?:目的地|城市|City)[:：]\s*([\u4e00-\u9fa5]{2,10})/,
-					)
-					if (destMatch && !invalidCities.includes(destMatch[1])) {
-						detectedCity = destMatch[1]
-						break
-					}
+					// Fallback to heuristics
+					for (const line of lines) {
+						const cleanLine = line.replace(/[*#]/g, '').trim() // Remove markdown chars
 
-					// 2. Action phrases: "去厦门玩", "游玩厦门"
-					const actionMatch = cleanLine.match(
-						/(?:去|游玩|玩|在|到|抵达|前往)\s*([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:玩|旅行|旅游|攻略|计划|行程|度假)/,
-					)
-					if (actionMatch && !invalidCities.includes(actionMatch[1])) {
-						detectedCity = actionMatch[1]
-						break
-					}
+						// 1. Explicit labels: "目的地：厦门"
+						const destMatch = cleanLine.match(
+							/(?:目的地|城市|City)[:：]\s*([\u4e00-\u9fa5]{2,10})/,
+						)
+						if (destMatch && !invalidCities.includes(destMatch[1])) {
+							detectedCity = destMatch[1]
+							break
+						}
 
-					// 3. Title/Summary phrases: "厦门3日游", "厦门行程", "为您定制的厦门之旅"
-					// Match a city name (2-5 chars) followed immediately by "Journey/Trip/Days" keywords
-					const titleMatch = cleanLine.match(
-						/(?:^|[^\u4e00-\u9fa5])([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:[0-9]+日|[一二三四五六七八九十]+天|日游|天游|行程|旅行|旅游|攻略|指南|计划)/,
-					)
-					if (titleMatch && !invalidCities.includes(titleMatch[1])) {
-						detectedCity = titleMatch[1]
-						break
+						// 2. Action phrases: "去厦门玩", "游玩厦门"
+						const actionMatch = cleanLine.match(
+							/(?:去|游玩|玩|在|到|抵达|前往)\s*([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:玩|旅行|旅游|攻略|计划|行程|度假)/,
+						)
+						if (actionMatch && !invalidCities.includes(actionMatch[1])) {
+							detectedCity = actionMatch[1]
+							break
+						}
+
+						// 3. Title/Summary phrases: "厦门3日游", "厦门行程", "为您定制的厦门之旅"
+						// Match a city name (2-5 chars) followed immediately by "Journey/Trip/Days" keywords
+						const titleMatch = cleanLine.match(
+							/(?:^|[^\u4e00-\u9fa5])([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:[0-9]+日|[一二三四五六七八九十]+天|日游|天游|行程|旅行|旅游|攻略|指南|计划)/,
+						)
+						if (titleMatch && !invalidCities.includes(titleMatch[1])) {
+							detectedCity = titleMatch[1]
+							break
+						}
 					}
 				}
 			}
+
 			if (detectedCity) {
 				console.log(
 					'🌍 Detected destination city for geocoding: ' + detectedCity,

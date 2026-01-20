@@ -133,9 +133,9 @@ IMPORTANT:
 		// 使用 LangChain 的 ChatOpenAI，配置为通义千问端点
 		this.chatModel = new ChatOpenAI({
 			apiKey,
-			model: this.configService.get<string>('QWEN_MODEL') || 'qwen-turbo',
+			model: this.configService.get<string>('QWEN_MODEL') || 'qwen-plus', // Default to qwen-plus for better capacity
 			temperature: 0.7,
-			maxTokens: 3000, // 增加 Token 上限以容纳更详细的方案
+			maxTokens: 6000, // 增加 Token 上限以容纳更详细的方案
 			configuration: {
 				baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
 			},
@@ -200,7 +200,19 @@ IMPORTANT:
 						const destMatch = msg.content.match(
 							/(?:去|到|玩|游览|前往)([^\s，,。、]{2,5}?)(?:玩|旅游|旅行|游|自由行)?/,
 						)
-						if (destMatch) city = destMatch[1]
+						if (destMatch) {
+							const potentialCity = destMatch[1]
+							// 排除时间词误判 (如 "三天", "2天", "下周", "几天")
+							const isDuration =
+								/^([0-9\d]+|[零一二三四五六七八九十两几]+)[天周月年小时]/.test(
+									potentialCity,
+								)
+							const isTime = /(?:下周|周末|明天|后天)/.test(potentialCity)
+
+							if (!isDuration && !isTime) {
+								city = potentialCity
+							}
+						}
 					}
 
 					// 2. 提取出发地 ("从北京出发", "北京走")

@@ -506,40 +506,65 @@
 
 ## [2026-01-20 10:45] AI JSON 格式迁移
 
-- **Backend**: Updated System Prompt to utilize strict JSON Schema for output, replacing Markdown tables.
+- **Backend**: 更新 System Prompt 以使用严格 JSON Schema 输出，替代 Markdown 表格。
 - **Frontend**:
-  - Implemented `parseItineraryContent` to support both JSON and legacy Markdown.
-  - Switched `useChat` to utilize non-streaming API for atomic data parsing.
-  - Updated `ChatInterface` and `MessageBubble` to gracefully handle JSON plan data.
+  - 实现 `parseItineraryContent` 以支持 JSON 和旧版 Markdown 的兼容解析。
+  - 切换 `useChat` 使用非流式 API 进行原子化数据解析。
+  - 更新 `ChatInterface` 和 `MessageBubble` 以优雅处理 JSON 计划数据。
 
-## [2026-01-20 10:52] Syntax & Stability Fixes
+## [2026-01-20 10:52] 语法与稳定性修复 (Syntax & Stability Fixes)
 
 - **Backend Fixes**:
-  - `langchain.service.ts`: Fixed unescaped backticks in System Prompt and corrupted template literals in logging that caused widespread "Cannot find name" compilation errors.
-  - Re-enabled `weekday` calculation logic.
+  - `langchain.service.ts`: 修复 System Prompt 中未转义的反引号以及日志中损坏的模板字符串（导致大规模 "Cannot find name" 编译错误）。
+  - 重新启用 `weekday` 计算逻辑。
 
 - **Frontend Fixes**:
-  - `useItineraryParser.ts`: Removed invalid markdown code fence (` \`\`\` `) at start of file and updated to use `parseItineraryContent`.
-  - `MessageBubble.tsx`: Reconstructed file to fix malformed JSX structure, syntax errors, and missing imports. Added proper "JSON Plan" display logic.
-  - `itineraryParser.ts`: Removed duplicate `mapTypeToEn` symbol.
-  - `ItinerarySummaryCard.tsx`: Updated to use `parseItineraryContent` to support both JSON and Markdown formats.
+  - `useItineraryParser.ts`: 移除文件开头的无效 Markdown 代码块标记 (` \`\`\` `) 并更新为使用 `parseItineraryContent`。
+  - `MessageBubble.tsx`: 重构文件以修复错误的 JSX 结构、语法错误和缺失的 import。添加了正确的 "JSON Plan" 显示逻辑。
+  - `itineraryParser.ts`: 移除重复定义的 `mapTypeToEn` 符号。
+  - `ItinerarySummaryCard.tsx`: 更新为使用 `parseItineraryContent` 以同时支持 JSON 和 Markdown 格式。
 
-## [2026-01-20 10:55] UI Optimization (JSON Display)
+## [2026-01-20 10:55] UI 优化 (JSON Display)
 
-- **Feature**: Implemented `CompactItineraryView` component to display a concise day-by-day summary in the chat bubble for JSON itinerary key.
-- **UX**: Replaced the generic "Plan Generated" placeholder with the new compact view, providing immediate value in the chat stream while keeping detailed info in the side panel.
+- **Feature**: 实现 `CompactItineraryView` 组件，在对话气泡中为 JSON 行程数据显示精简的每日摘要。
+- **UX**: 用新的精简视图替换了通用的 "Plan Generated" 占位符，在保留侧边栏详细信息的同时，让对话流更具即时价值。
 
-## [2026-01-20 11:00] Chat UI Polish
+## [2026-01-20 11:00] 聊天界面打磨 (Chat UI Polish)
 
-- **Fix**: Resolved User message bubble alignment issue by standardizing CSS class names (`user`/`assistant`).
-- **Fix**: Added JSON parsing logic for `type: "question"` messages to ensure AI questions are displayed as natural text instead of raw JSON code.
+- **Fix**: 统一 CSS 类名 (`user`/`assistant`)，解决了用户消息气泡对齐问题。
+- **Fix**: 为 `type: "question"` 消息添加 JSON 解析逻辑，确保 AI 提问以自然文本显示，而非原始 JSON 代码。
 
-## [2026-01-20 11:05] Fix Itinerary Panel Data Flow
+## [2026-01-20 11:05] 修复行程面板数据流 (Fix Itinerary Panel Data Flow)
 
-- **Fix**: Updated `ChatInterface.tsx` to correctly detect JSON-formatted itinerary plans (`"type": "plan"`) when extracting the latest itinerary content. Previously, it only recognized legacy Markdown tables, causing the right-side panel to remain empty for New JSON responses.
+- **Fix**: 更新 `ChatInterface.tsx`，在提取最新行程内容时正确检测 JSON 格式的行程计划 (`"type": "plan"`)。此前仅能识别旧版 Markdown 表格，导致新版 JS 响应时右侧面板为空。
 
-## [2026-01-20 11:10] Chat Bubble Visibility Improvement
+## [2026-01-20 11:10] 聊天气泡可见性改进 (Chat Bubble Visibility Improvement)
 
-- **UI**: Enhanced contrast for chat bubbles.
-  - **User Bubble**: Added solid blue fallback, increased font weight, and refined border radius.
-  - **AI Bubble**: Removed glassmorphism transparency for a solid white background with stronger borders and shadows to improve readability against light backgrounds.
+- **UI**: 增强了聊天气泡的对比度。
+  - **User Bubble**: 增加了纯蓝色背景兜底，加粗字体并优化圆角。
+  - **AI Bubble**: 移除了玻璃拟态透明效果，改为纯白背景搭配更强的边框和阴影，提高浅色背景下的可读性。
+- **Fix**: 恢复 `MessageBubble.tsx` 中缺失的 `message-text` 包裹层，解决文本容器样式失效的问题。
+
+## [2026-01-20 11:15] 修复 AI 响应截断 (Fix AI Response Truncation)
+
+- **Backend**: 将 `maxTokens` 从 3000 提升至 6000，并将默认模型升级为 `qwen-plus`，防止大型 JSON 行程在中间被截断，确保前端接收完整有效的数据。
+
+## [2026-01-20 11:20] 增强提问 UI (Enhanced Question UI)
+
+- **Feature**: 实现 `QuestionCard` 组件，优化 AI 询问（如询问预算/日期）的展示效果。
+- **UX**: AI 的提问不再是纯文本块，而是解析并展示为结构化卡片，包含清晰的标题（“你需要确认的信息”）和列表视图，方便用户快速识别所需输入。
+
+## [2026-01-20 11:25] 结构化提问数据 (Structured Question Data)
+
+- **Architecture**: 重构 AI 的 "question" 响应，使用完全结构化的 JSON Schema (`message` + `questions` 数组) 替代 Markdown 字符串。这提高了稳定性并移除了前端对正则解析的依赖。
+- **Fix**: 修复 `QuestionCard` 中的 `TypeError`，为缺失数据添加安全默认值，并在 `MessageBubble` 中标准化旧版 JSON 格式。
+- **UI**: 简化 `QuestionCard` 样式，移除嵌套的边框和阴影。问题列表现在无缝融入主聊天气泡中。
+
+## [2026-01-20 11:30] 修复后端意图分析 (Fix Backend Intent Analysis)
+
+- **Logic**: 改进 `langchain.service.ts` 中的目的地提取正则解析器。增加验证逻辑以显式忽略时间词（如 "三天"、"2天"、"下周"、"周末"），防止系统误将 "玩三天" 识别为 "目的地: 三天"，从而导致无关的 POI 数据注入和流程中断。
+
+## [2026-01-20 11:45] 修复地图生成与地理编码 (Fix Map Generation & Geocoding)
+
+- **Frontend Logic**: 更新 `itineraryParser.ts` 和 `useItineraryParser`，正确从 JSON 结构的行程中提取目的地 `city`。
+- **Fix**: 修复地图生成失败或地点定位错误（如通用名称解析到北京）的问题，原因在于 API 请求中缺失城市上下文 (`city: undefined`)。现在地图服务严格限制在目标城市范围内搜索。
