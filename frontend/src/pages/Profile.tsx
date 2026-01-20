@@ -106,6 +106,9 @@ export default function Profile() {
 			// Update local context
 			updateUser({ ...user!, nickname, preferences })
 
+			// Mark reminder as dismissed since user has taken action
+			sessionStorage.setItem('preference_reminder_dismissed', 'true')
+
 			// Show Success Modal
 			setShowSuccessModal(true)
 		} catch (err) {
