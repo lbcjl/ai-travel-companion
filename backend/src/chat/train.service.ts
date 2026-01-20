@@ -133,8 +133,16 @@ export class TrainService {
 				headers: {
 					'User-Agent':
 						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+					Accept: '*/*',
+					'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+					'Accept-Encoding': 'gzip, deflate, br',
+					Referer: 'https://kyfw.12306.cn/otn/leftTicket/init',
+					Host: 'kyfw.12306.cn',
+					Connection: 'keep-alive',
+					// 模拟 Cookie 上下文，这有时能绕过简单的检查
+					Cookie: `_jc_save_fromStation=${encodeURIComponent(from + ',' + fromCode)}; _jc_save_toStation=${encodeURIComponent(to + ',' + toCode)}; _jc_save_fromDate=${date}; _jc_save_wfdc_flag=dc`,
 				},
-				timeout: 5000, // Add timeout
+				timeout: 8000,
 			})
 
 			const data = response.data
