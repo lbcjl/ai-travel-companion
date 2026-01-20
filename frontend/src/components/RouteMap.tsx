@@ -93,12 +93,26 @@ export default function RouteMap({
 		let driving: any = null
 
 		try {
+			// Filter out locations with invalid coordinates
+			const validLocations = locations.filter(
+				(loc) =>
+					typeof loc.lat === 'number' &&
+					typeof loc.lng === 'number' &&
+					!isNaN(loc.lat) &&
+					!isNaN(loc.lng),
+			)
+
+			if (validLocations.length === 0) {
+				console.warn('RouteMap: No valid locations to display')
+				return
+			}
+
 			console.log(
 				'初始化地图，中心点:',
-				locations[0],
+				validLocations[0],
 				'共',
-				locations.length,
-				'个地点',
+				validLocations.length,
+				'个有效地点',
 			)
 
 			// [Screenshot Fix] Monkey patch getContext to force preserveDrawingBuffer
@@ -127,7 +141,7 @@ export default function RouteMap({
 					resizeEnable: true,
 					viewMode: '2D',
 					zoom: 11,
-					center: [locations[0].lng, locations[0].lat],
+					center: [validLocations[0].lng, validLocations[0].lat],
 					mapStyle: 'amap://styles/whitesmoke',
 				})
 			} finally {
@@ -136,7 +150,7 @@ export default function RouteMap({
 			}
 
 			// 添加自定义标记
-			locations.forEach((location, index) => {
+			validLocations.forEach((location, index) => {
 				const markerContent = document.createElement('div')
 				markerContent.className = 'custom-marker'
 				markerContent.innerHTML = `
@@ -154,7 +168,7 @@ export default function RouteMap({
 				const infoContent = generateInfoWindowContent(
 					location,
 					index,
-					locations,
+					validLocations,
 				)
 				const infoWindow = new AMap.InfoWindow({
 					content: infoContent,
@@ -168,16 +182,16 @@ export default function RouteMap({
 				map.add(marker)
 			})
 
-			if (locations.length > 1) {
+			if (validLocations.length > 1) {
 				// setWarning(null) // Reset warning
 
 				// [Multi-City Check] 如果点与点之间距离过远（>300km），不使用驾车规划，直接用直线
-				const isLongDistance = hasLongSemgent(locations, 300000) // 300km
+				const isLongDistance = hasLongSemgent(validLocations, 300000) // 300km
 
 				if (isLongDistance) {
 					console.log('检测到长距离/跨城行程，切换为直线模式')
 					// setWarning('跨城行程，显示直线路径') // Optional warning
-					fallbackToPolyline(map, locations)
+					fallbackToPolyline(map, validLocations)
 				} else {
 					// 创建驾车路线规划实例
 					driving = new AMap.Driving({
@@ -188,13 +202,16 @@ export default function RouteMap({
 					})
 
 					// 构造起点、终点和途经点
-					const start = new AMap.LngLat(locations[0].lng, locations[0].lat)
+					const start = new AMap.LngLat(
+						validLocations[0].lng,
+						validLocations[0].lat,
+					)
 					const end = new AMap.LngLat(
-						locations[locations.length - 1].lng,
-						locations[locations.length - 1].lat,
+						validLocations[validLocations.length - 1].lng,
+						validLocations[validLocations.length - 1].lat,
 					)
 
-					const waypoints = locations
+					const waypoints = validLocations
 						.slice(1, -1)
 						.map((loc) => new AMap.LngLat(loc.lng, loc.lat))
 
@@ -209,7 +226,7 @@ export default function RouteMap({
 								console.warn('路线规划失败:', result)
 								// setWarning('路线规划服务不可用，已切换为直线模式')
 								console.warn('路线规划服务不可用，已切换为直线模式')
-								fallbackToPolyline(map, locations)
+								fallbackToPolyline(map, validLocations)
 							}
 						},
 					)
@@ -252,6 +269,7 @@ export default function RouteMap({
 			lineCap: 'round',
 			zIndex: 50,
 			showDir: true,
+			showMsg: false, // Prevent message on segments
 		})
 		map.add(polyline)
 		map.setFitView()

@@ -11,7 +11,7 @@ export default function ItinerarySummaryCard({
 }: ItinerarySummaryCardProps) {
 	// Parse the content purely for stats display
 	const { days, totalCost, locationCount } = useMemo(() => {
-		const parsedDays = parseItineraryContent(content)
+		const { days: parsedDays } = parseItineraryContent(content)
 		let cost = 0
 		let count = 0
 

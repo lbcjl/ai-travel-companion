@@ -9,7 +9,10 @@ interface CompactItineraryViewProps {
 export default function CompactItineraryView({
 	content,
 }: CompactItineraryViewProps) {
-	const days = useMemo(() => parseItineraryContent(content), [content])
+	const days = useMemo(() => {
+		const { days } = parseItineraryContent(content)
+		return days
+	}, [content])
 
 	if (days.length === 0) return null
 
