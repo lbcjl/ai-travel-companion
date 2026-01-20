@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { parseMarkdownTable } from '../utils/itineraryParser'
+import { parseItineraryContent } from '../utils/itineraryParser'
 import './ItinerarySummaryCard.css'
 
 interface ItinerarySummaryCardProps {
@@ -11,7 +11,7 @@ export default function ItinerarySummaryCard({
 }: ItinerarySummaryCardProps) {
 	// Parse the content purely for stats display
 	const { days, totalCost, locationCount } = useMemo(() => {
-		const parsedDays = parseMarkdownTable(content)
+		const parsedDays = parseItineraryContent(content)
 		let cost = 0
 		let count = 0
 

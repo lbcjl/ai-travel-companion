@@ -30,7 +30,10 @@ export class UserService {
 		const user = await this.findById(id)
 		if (!user) throw new Error('User not found')
 
+		console.log('Saving preferences for user:', id, JSON.stringify(preferences))
 		user.preferences = { ...user.preferences, ...preferences }
-		return this.usersRepository.save(user)
+		const saved = await this.usersRepository.save(user)
+		console.log('Saved user:', JSON.stringify(saved))
+		return saved
 	}
 }

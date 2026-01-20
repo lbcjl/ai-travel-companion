@@ -503,3 +503,43 @@
 
 - **Feat**: 新增“个人偏好完善提醒”功能。当用户未设置常居城市时，会在登录后提示前往设置，确保 AI 行程规划拥有必要的上下文。
 - **Fix (Stream)**: 彻底重构 LangChain流式调用逻辑，支持多步工具连续调用 (Loop)，不再出现响应中断问题。
+
+## [2026-01-20 10:45] AI JSON 格式迁移
+
+- **Backend**: Updated System Prompt to utilize strict JSON Schema for output, replacing Markdown tables.
+- **Frontend**:
+  - Implemented `parseItineraryContent` to support both JSON and legacy Markdown.
+  - Switched `useChat` to utilize non-streaming API for atomic data parsing.
+  - Updated `ChatInterface` and `MessageBubble` to gracefully handle JSON plan data.
+
+## [2026-01-20 10:52] Syntax & Stability Fixes
+
+- **Backend Fixes**:
+  - `langchain.service.ts`: Fixed unescaped backticks in System Prompt and corrupted template literals in logging that caused widespread "Cannot find name" compilation errors.
+  - Re-enabled `weekday` calculation logic.
+
+- **Frontend Fixes**:
+  - `useItineraryParser.ts`: Removed invalid markdown code fence (` \`\`\` `) at start of file and updated to use `parseItineraryContent`.
+  - `MessageBubble.tsx`: Reconstructed file to fix malformed JSX structure, syntax errors, and missing imports. Added proper "JSON Plan" display logic.
+  - `itineraryParser.ts`: Removed duplicate `mapTypeToEn` symbol.
+  - `ItinerarySummaryCard.tsx`: Updated to use `parseItineraryContent` to support both JSON and Markdown formats.
+
+## [2026-01-20 10:55] UI Optimization (JSON Display)
+
+- **Feature**: Implemented `CompactItineraryView` component to display a concise day-by-day summary in the chat bubble for JSON itinerary key.
+- **UX**: Replaced the generic "Plan Generated" placeholder with the new compact view, providing immediate value in the chat stream while keeping detailed info in the side panel.
+
+## [2026-01-20 11:00] Chat UI Polish
+
+- **Fix**: Resolved User message bubble alignment issue by standardizing CSS class names (`user`/`assistant`).
+- **Fix**: Added JSON parsing logic for `type: "question"` messages to ensure AI questions are displayed as natural text instead of raw JSON code.
+
+## [2026-01-20 11:05] Fix Itinerary Panel Data Flow
+
+- **Fix**: Updated `ChatInterface.tsx` to correctly detect JSON-formatted itinerary plans (`"type": "plan"`) when extracting the latest itinerary content. Previously, it only recognized legacy Markdown tables, causing the right-side panel to remain empty for New JSON responses.
+
+## [2026-01-20 11:10] Chat Bubble Visibility Improvement
+
+- **UI**: Enhanced contrast for chat bubbles.
+  - **User Bubble**: Added solid blue fallback, increased font weight, and refined border radius.
+  - **AI Bubble**: Removed glassmorphism transparency for a solid white background with stronger borders and shadows to improve readability against light backgrounds.

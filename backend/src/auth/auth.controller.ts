@@ -35,15 +35,15 @@ export class AuthController {
 	@UseGuards(AuthGuard('jwt'))
 	@Get('profile')
 	async getProfile(@Request() req) {
-		// req.user only contains { userId, email } from JwtStrategy headers
-		// We fetch full user data (including preferences)
-		return this.userService.findById(req.user.userId)
+		// req.user is now the full User entity from JwtStrategy
+		return req.user
 	}
 
 	@UseGuards(AuthGuard('jwt'))
 	@Put('profile')
 	async updateProfile(@Request() req, @Body() body: any) {
+		console.log('Update Profile Body:', JSON.stringify(body))
 		// Update preferences or nickname
-		return this.userService.updatePreferences(req.user.userId, body.preferences)
+		return this.userService.updatePreferences(req.user.id, body.preferences)
 	}
 }

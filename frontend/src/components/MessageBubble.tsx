@@ -4,6 +4,8 @@ import './MessageBubble.css'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ItinerarySummaryCard from './ItinerarySummaryCard'
+import CompactItineraryView from './CompactItineraryView'
+import Avatar from './Avatar'
 
 interface MessageBubbleProps {
 	message: Message
@@ -13,52 +15,57 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 	const isUser = message.role === 'user'
 	const isAssistant = message.role === 'assistant'
 
-	// 检测是否为旅行计划消息（包含行程表格或关键词）
+	// 检测是否为旅行计划消息（支持 Markdown 表格 或 JSON 格式）
 	const isTravelPlan =
 		isAssistant &&
 		typeof message.content === 'string' &&
 		(message.content.includes('## 📅 每日详细行程') ||
-			message.content.includes('| 序号 |'))
+			message.content.includes('| 序号 |') ||
+			(message.content.includes('"type": "plan"') &&
+				message.content.includes('"itinerary":')))
+
+	// JSON Plan 渲染逻辑：如果是 JSON，我们可能不显示原始 JSON，而是显示 SummaryCard + 提示
+	// 或者，如果 ItinerarySummaryCard 支持 JSON，直接传进去。
+	// 目前 ItinerarySummaryCard 使用 parseMarkdownTable，暂时不支持 JSON。
+	// 但如果不显示 raw content，用户看不到东西。
+	// 临时策略：如果是 JSON plan，尝试渲染 SummaryCard（需要后续升级 SummaryCard），
+	// 同时也可以渲染 Markdown（如果是混合的）。
+	// 针对纯 JSON 输出，我们可能需要一个专门的 Renderer。
+	// 但根据之前的逻辑，MessageBubble 主要负责显示气泡。
+
+	// 为了兼容性，如果是 JSON plan，我们暂时显示 SummaryCard (它可能显示空)，
+	// 并且显示特定的文本提示，而不是展示一大坨 JSON 源码。
+	const isJsonPlan = isTravelPlan && message.content.trim().startsWith('{')
+
+	// Parsing Logic for JSON Question
+	let displayContent = message.content
+	try {
+		if (
+			!isTravelPlan &&
+			typeof message.content === 'string' &&
+			message.content.trim().startsWith('{')
+		) {
+			const parsed = JSON.parse(message.content)
+			if (parsed.type === 'question' && parsed.content) {
+				displayContent = parsed.content
+			}
+		}
+	} catch (e) {
+		// Ignore parsing errors, treat as raw text
+	}
 
 	return (
-		<div className={`message-bubble ${message.role}`}>
-			{isAssistant && (
+		<div className={`message-bubble ${isUser ? 'user' : 'assistant'}`}>
+			{/* AI 头像 (左侧) */}
+			{!isUser && (
 				<div className='avatar ai-avatar'>
-					<svg
-						width='24'
-						height='24'
-						viewBox='0 0 24 24'
-						fill='none'
-						stroke='currentColor'
-						strokeWidth='2'
-					>
-						<path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' />
-					</svg>
+					<Avatar name='AI' size='sm' />
 				</div>
 			)}
 
-			<div className='message-content'>
-				<div className='message-text'>
-					{/* 对于旅行计划使用 Summary Card，点击展开详情 */}
-					{message.content && typeof message.content === 'string' ? (
-						<>
-							{isTravelPlan ? (
-								<ItinerarySummaryCard content={message.content} />
-							) : (
-								<div className='markdown-body'>
-									<ReactMarkdown remarkPlugins={[remarkGfm]}>
-										{message.content}
-									</ReactMarkdown>
-								</div>
-							)}
-						</>
-					) : (
-						<div className='time-tooltip'>
-							{message.content && typeof message.content !== 'string'
-								? JSON.stringify(message.content)
-								: ''}
-						</div>
-					)}
+			<div className='message-content-wrapper'>
+				<div className='message-content'>
+					{/* Loading State */}
 					{!message.content && (
 						<div className='typing-dots-inline'>
 							<span></span>
@@ -66,13 +73,32 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 							<span></span>
 						</div>
 					)}
-				</div>
 
-				{/* 地图已移动到右侧面板，此处不再显示 */}
+					{/* Travel Plan Card */}
+					{isTravelPlan && (
+						<div className='plan-card-container'>
+							<ItinerarySummaryCard content={message.content} />
+						</div>
+					)}
+
+					{/* Main Text Content */}
+					{message.content && (
+						<div className='markdown-body'>
+							{isJsonPlan ? (
+								<CompactItineraryView content={message.content} />
+							) : (
+								<ReactMarkdown remarkPlugins={[remarkGfm]}>
+									{displayContent}
+								</ReactMarkdown>
+							)}
+						</div>
+					)}
+				</div>
 
 				<div className='message-time'>{formatTime(message.createdAt)}</div>
 			</div>
 
+			{/* User 头像 (右侧) */}
 			{isUser && (
 				<div className='avatar user-avatar'>
 					<svg

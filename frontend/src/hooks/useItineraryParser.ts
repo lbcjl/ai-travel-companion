@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { mapApi } from '../services/mapApi'
-import { parseMarkdownTable, DayItinerary } from '../utils/itineraryParser'
+import {
+	parseItineraryContent,
+	DayItinerary,
+	Location,
+} from '../utils/itineraryParser'
 
 export type { DayItinerary }
 
@@ -20,15 +24,8 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 			setParsedContent('')
 			return
 		}
-		if (content === parsedContent) return // 避免重复解析
-
-		// 只有当内容看起来包含完整的表格时才解析
-		if (!content.includes('| 序号 |') || !content.includes('|--')) {
-			return
-		}
-
 		console.log('Parsing itinerary content...')
-		const parsedDays = parseMarkdownTable(content)
+		const parsedDays = parseItineraryContent(content)
 
 		if (parsedDays.length > 0) {
 			setLoading(true)
@@ -47,6 +44,20 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 			if (metaMatch) {
 				detectedCity = metaMatch[1]
 			} else {
+				const invalidCities = [
+					'住宿',
+					'交通',
+					'用餐',
+					'景点',
+					'推荐',
+					'行程',
+					'攻略',
+					'指南',
+					'计划',
+					'及',
+					'往返',
+				]
+
 				// Fallback to heuristics
 				for (const line of lines) {
 					const cleanLine = line.replace(/[*#]/g, '').trim() // Remove markdown chars
@@ -55,7 +66,7 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 					const destMatch = cleanLine.match(
 						/(?:目的地|城市|City)[:：]\s*([\u4e00-\u9fa5]{2,10})/,
 					)
-					if (destMatch) {
+					if (destMatch && !invalidCities.includes(destMatch[1])) {
 						detectedCity = destMatch[1]
 						break
 					}
@@ -64,7 +75,7 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 					const actionMatch = cleanLine.match(
 						/(?:去|游玩|玩|在|到|抵达|前往)\s*([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:玩|旅行|旅游|攻略|计划|行程|度假)/,
 					)
-					if (actionMatch) {
+					if (actionMatch && !invalidCities.includes(actionMatch[1])) {
 						detectedCity = actionMatch[1]
 						break
 					}
@@ -74,7 +85,7 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 					const titleMatch = cleanLine.match(
 						/(?:^|[^\u4e00-\u9fa5])([\u4e00-\u9fa5]{2,5})(?:市|区)?(?:[0-9]+日|[一二三四五六七八九十]+天|日游|天游|行程|旅行|旅游|攻略|指南|计划)/,
 					)
-					if (titleMatch) {
+					if (titleMatch && !invalidCities.includes(titleMatch[1])) {
 						detectedCity = titleMatch[1]
 						break
 					}
@@ -82,7 +93,7 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 			}
 			if (detectedCity) {
 				console.log(
-					`🌍 Detected destination city for geocoding: ${detectedCity}`,
+					'🌍 Detected destination city for geocoding: ' + detectedCity,
 				)
 			}
 
@@ -137,7 +148,11 @@ export function useItineraryParser(content: string): ItineraryParserResult {
 								loc.lng = geo.lng
 							} else {
 								console.warn(
-									`Geocoding failed for: ${loc.name} (${loc.address})`,
+									'Geocoding failed for: ' +
+										loc.name +
+										' (' +
+										loc.address +
+										')',
 								)
 								// 即使失败也保留地点，确保前端能显示（只是没地图坐标）
 							}

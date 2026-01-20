@@ -31,7 +31,82 @@ export interface DayItinerary {
 /**
  * 解析Markdown表格行，按天分组
  */
-export const parseMarkdownTable = (content: string): DayItinerary[] => {
+/**
+ * 解析行程内容 (支持 JSON 和 Markdown 兼容)
+ */
+export const parseItineraryContent = (content: string): DayItinerary[] => {
+	// 1. 尝试解析 JSON
+	try {
+		// 移除可能存在的 Markdown 代码块标记
+		let jsonStr = content.trim()
+		if (jsonStr.startsWith('```json')) {
+			jsonStr = jsonStr
+				.replace(/^```json/, '')
+				.replace(/```$/, '')
+				.trim()
+		} else if (jsonStr.startsWith('```')) {
+			jsonStr = jsonStr.replace(/^```/, '').replace(/```$/, '').trim()
+		}
+
+		// 尝试作为 JSON 解析
+		if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+			const data = JSON.parse(jsonStr)
+
+			// Case A: 完整方案结构 { type: "plan", itinerary: { days: [] } }
+			if (
+				data.type === 'plan' &&
+				data.itinerary &&
+				Array.isArray(data.itinerary.days)
+			) {
+				return data.itinerary.days.map((day: any) => ({
+					day: `Day ${day.day}`,
+					description: day.description || '',
+					weather: day.weather || '',
+					dailyCost: day.dailyCost,
+					tips: day.tips || [],
+					locations: Array.isArray(day.schedule)
+						? day.schedule.map((item: any, idx: number) => ({
+								order: idx + 1,
+								time: item.time,
+								name: item.name,
+								type: item.type,
+								address: item.address,
+								duration: item.duration,
+								cost: item.cost,
+								description: item.description,
+								highlights: item.highlights,
+								food: item.food,
+								transportation: item.transportation,
+							}))
+						: [],
+				}))
+			}
+
+			// Case B: 如果 AI 只返回了 itinerary 对象
+			if (data.itinerary && Array.isArray(data.itinerary.days)) {
+				return data.itinerary.days.map((day: any) => ({
+					day: `Day ${day.day}`,
+					description: day.description || '',
+					weather: day.weather || '',
+					dailyCost: day.dailyCost,
+					tips: day.tips || [],
+					locations: Array.isArray(day.schedule) ? day.schedule : [],
+				}))
+			}
+		}
+	} catch (e) {
+		// JSON 解析失败，回退到 Markdown 解析
+		// console.warn('JSON parsing failed, falling back to Markdown', e)
+	}
+
+	// 2. 回退到 Markdown 表格解析 (兼容旧数据)
+	return parseMarkdownTable(content)
+}
+
+/**
+ * 解析Markdown表格行，按天分组 (Legacy Support)
+ */
+const parseMarkdownTable = (content: string): DayItinerary[] => {
 	const lines = content.split('\n')
 	const days: DayItinerary[] = []
 

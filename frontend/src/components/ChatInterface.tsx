@@ -39,15 +39,17 @@ export default function ChatInterface() {
 	// 提取最新的行程内容（来自最后一条 AI 消息）
 	const latestItineraryContent = useMemo(() => {
 		if (!conversation) return ''
-		// 倒序查找最后一条包含表格的 Assistant 消息
-		const lastAiMsg = [...conversation.messages]
-			.reverse()
-			.find(
-				(m) =>
-					m.role === 'assistant' &&
-					typeof m.content === 'string' &&
-					(m.content.includes('| 序号 |') || m.content.includes('|--')),
-			)
+		// 倒序查找最后一条包含表格或 JSON 方案的 Assistant 消息
+		const lastAiMsg = [...conversation.messages].reverse().find(
+			(m) =>
+				m.role === 'assistant' &&
+				typeof m.content === 'string' &&
+				// 兼容旧 Markdown表格 或 新 JSON
+				(m.content.includes('| 序号 |') ||
+					m.content.includes('|--') ||
+					(m.content.includes('"type": "plan"') &&
+						m.content.includes('"itinerary":'))),
+		)
 		return lastAiMsg ? lastAiMsg.content : ''
 	}, [conversation])
 

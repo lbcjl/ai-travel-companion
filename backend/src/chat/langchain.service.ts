@@ -53,57 +53,68 @@ export class LangChainService {
 请保持 **热情、专业且令人向往** 的语气。
 
 ## 🚫 话题限制 (关键)
-你是一位**专职**的旅行规划师，**仅**回答与旅行相关的问题（包括：行程规划、景点介绍、交通住宿、各地美食、预算计算、签证政策等）。
-- **如果用户咨询无关话题**（如：写代码、数学题、政治新闻、娱乐八卦、心理咨询等），**必须**礼貌拒绝。
-- **拒绝话术示例**：“我是您的专属旅行规划助手，专注于为您打造完美旅程。这个问题超出了我的专业范围，我们还是以此为契机，聊聊您想去哪儿玩吧？🌍”
+你是一位**专职**的旅行规划师，**仅**回答与旅行相关的问题。
+- **如果用户咨询无关话题**，**必须**礼貌拒绝。
 
-## 📝 方案生成要求
-当你收集到上述信息后，请生成一份**真实、详细**的旅行方案。
+## 📝 输出格式要求 (CRITICAL: JSON ONLY)
+**严禁输出 Markdown 或纯文本! 必须且只能输出严格合法的 JSON 格式。**
+如果正在收集信息阶段，请输出 \`type: "question"\`。
+如果已经收集完信息并生成方案，请输出 \`type: "plan"\`。
 
-### 1. 🚄 往返及城际大交通（必须真实）
-- **去程/返程**：推荐具体的 1-2 个真实班次（高铁车次或航班号）。
-- **城际交通**：如果是多城市旅行，请单独列出城市间的交通安排（如“上海 -> 苏州：高铁 G123”）。
-- **真实性要求**：必须使用现实存在的车次/航班。
+### JSON Schema 定义
 
-### 2. 🏨 住宿指南（必须基于真实数据）
-- **推荐区域**：给出推荐居住的区域及理由。如果是多城市，请分别列出每个城市的住宿建议。
-- **精选酒店**：挑选 **3家** 左右不同价位或风格的酒店。
-- **酒店信息**：包含酒店名称、参考价格、推荐理由。
+#### 1. 提问/对话模式 (当信息不全时)
+\`\`\`json
+{
+  "type": "question",
+  "content": "这里写你回复用户的自然语言内容，比如追问预算或时间..."
+}
+\`\`\`
 
-### 3. 📅 每日详细行程（必须用表格）
-**必须使用以下表格格式**，每一天一个表格：
+#### 2. 方案生成模式 (当信息齐全时)
+\`\`\`json
+{
+  "type": "plan",
+  "itinerary": {
+    "city": "主要目的地城市",
+    "days": [
+      {
+        "day": 1,
+        "date": "YYYY-MM-DD",
+        "weather": "Sunny 25°C",
+        "dailyCost": 500,
+        "description": "这一天的主题或简介...",
+        "schedule": [
+          {
+            "time": "09:00",
+            "type": "attraction", // attraction | restaurant | hotel | transport
+            "name": "地点名称",
+            "address": "城市+区+街道+门牌号",
+            "duration": "120分钟",
+            "cost": "¥50",
+            "description": "详细介绍...",
+            "highlights": ["亮点1", "亮点2"],
+            "food": ["推荐菜1"],
+            "transportation": {
+              "method": "步行/地铁/打车",
+              "duration": "15分钟",
+              "cost": "¥5"
+            }
+          }
+        ],
+        "tips": ["避坑指南1", "注意事项2"]
+      }
+    ],
+    "totalBudget": "¥2000",
+    "summary": "行程总览的简短描述..."
+  }
+}
+\`\`\`
 
-#### 第X天行程表
-> **城市**：请注明当日所在的城市（如：上海）
-> **天气**：请根据当日实际天气填写
-> **今日预计花销**：请计算当日列表中的总花费
-
-| 序号 | 时间 | 类型 | 名称 | 完整地址 | 停留时长 | 门票/人均 | 说明(景点介绍) | 好玩的 | 好吃的 | 交通(去下一站) |
-|------|------|------|------|----------|----------|-----------|----------------|--------|--------|----------------|
-| 1 | 09:00 | 景点 | 景点名称 | 城市+区+具体地址 | 120分钟 | ¥50 | **必须写一段生动的简介**（约50字），介绍它的历史、特色或必看之处，不要只写“推荐去”。 | 亮点 | 周边美食 | 步行15分钟 |
-| 2 | 12:00 | 餐厅 | 餐厅名称 | 城市+区+具体地址 | 90分钟 | ¥100 | 介绍该餐厅的特色风格或主打菜系。 | 招牌菜 | / | 出租车10分钟 |
-
-**表格填写要求**：
-- **说明(景点介绍)**：**这是最关键的内容！** 
-  - ❌ **严重错误**：“景色优美，值得一去。”（太短，太假）
-  - ✅ **正确示范**：“始建于1420年的皇家祭天场所，拥有世界最大的古代祭天建筑群。核心建筑祈年殿通体使用蓝色琉璃瓦，象征天空。建议在回音壁尝试奇妙的声学现象，并在丹陛桥上拍摄祈年殿全景。”
-  - **要求**：必须写满 **60-100字**，包含历史背景、建筑特色、最佳拍照点或独特体验。让用户看一眼就被种草。
-- **头部信息**：必须填写**城市**、**天气**和**今日预计花销**。
-- **仅包含目的地行程**：表格内**只记录在目的地城市内部**的游玩/餐饮/住宿。
-- **城际交通**：可以是表格的一行（类型为“交通”），或者写在说明里。建议将**跨城移动**作为单独的一行，名称写“前往XX城市”，类型写“交通”。
-- **地址必须完整**：**必须包含"城市+区+街道+门牌号"**（关键！这对多城市地图定位至关重要）。
-- **真实性验证**：所有地点必须真实存在。
-
-### 4. 💰 预算明细
-- **必须使用计算器工具**：请调用 \`calculator\` 工具将表格中的每一笔费用相加，确保总额绝对准确。
-- 列出交通（往返+城际+市内）、住宿、餐饮、门票的预估总价。
-- **禁止口算**：必须依赖工具计算结果。
-
-## 🏷️ 格式强制要求 (非常重要)
-在回复的第一行，**必须**插入一条包含主要目的地城市的隐藏注释，格式如下：
-\`<!-- DESTINATION_CITY: 城市名称 -->\`
-（填写整个行程的主要目的地，如果是多城市，填写第一个或最主要的城市即可）
-
+IMPORTANT: 
+- 不要包含 markdown 代码块标记 (\`\`\`json)，直接输出 JSON 字符串。
+- 确保 JSON 格式合法。
+- 使用 \`calculator\` 工具计算总价。
 `
 
 	constructor(
@@ -130,7 +141,8 @@ export class LangChainService {
 			},
 		})
 
-		this.logger.log(`🧠 LangChain 服务已初始化，使用通义千问模型`)
+		this.logger.log('🧠 LangChain 服务已初始化，使用通义千问模型')
+		// Trigger recompile check
 	}
 
 	/**
@@ -143,22 +155,26 @@ export class LangChainService {
 	): AsyncGenerator<string> {
 		try {
 			// 0. 构建用户偏好上下文
+			this.logger.debug('[ChatStream] User Context: ' + JSON.stringify(user))
 			let userContextPrompt = ''
 			if (user && user.preferences) {
 				const p = user.preferences
 				const parts: string[] = []
-				if (p.nickname) parts.push(`用户昵称: ${p.nickname}`)
-				if (p.homeCity) parts.push(`常居城市: ${p.homeCity}`)
+				if (p.nickname) parts.push('用户昵称: ' + p.nickname)
+				if (p.homeCity) parts.push('常居城市: ' + p.homeCity)
 				if (p.budgetRange && p.budgetRange !== '不限')
-					parts.push(`预算偏好: ${p.budgetRange}`)
-				if (p.travelStyle) parts.push(`旅行风格: ${p.travelStyle}`)
+					parts.push('预算偏好: ' + p.budgetRange)
+				if (p.travelStyle) parts.push('旅行风格: ' + p.travelStyle)
 				if (p.dietary && p.dietary.length > 0)
-					parts.push(`饮食偏好: ${p.dietary.join(', ')}`)
+					parts.push('饮食偏好: ' + p.dietary.join(', '))
 				if (p.interests && p.interests.length > 0)
-					parts.push(`兴趣标签: ${p.interests.join(', ')}`)
+					parts.push('兴趣标签: ' + p.interests.join(', '))
 
 				if (parts.length > 0) {
-					userContextPrompt = `\n## 👤 用户个性化偏好 (请严格遵守)\n${parts.join('\n')}\n请在生成方案时特别关照上述偏好。例如：如果用户不吃辣，请避免推荐川湘菜；如果用户喜欢自然风光，请多安排户外景点。`
+					userContextPrompt =
+						'\n## 👤 用户个性化偏好 (请严格遵守)\n' +
+						parts.join('\n') +
+						'\n请在生成方案时特别关照上述偏好。例如：如果用户不吃辣，请避免推荐川湘菜；如果用户喜欢自然风光，请多安排户外景点。'
 				}
 			}
 
@@ -210,15 +226,17 @@ export class LangChainService {
 				}
 			}
 
-			this.logger.log(`📝 [Intent Analysis]`)
-			this.logger.log(`   - 🗣️ 用户输入: "\${lastUserMessage || 'Unknown'}"`)
-			this.logger.log(`   - 🏁 目的地 (Dest): \${city || '❓ 未知'}`)
-			this.logger.log(`   - 🚀 出发地 (Origin): \${origin || '❓ 未知'}`)
-			this.logger.log(`   - 💰 预算参考: \${budget || '❓ 未知'}`)
+			this.logger.log('📝 [Intent Analysis]')
+			this.logger.log(
+				'   - 🗣️ 用户输入: "' + (lastUserMessage || 'Unknown') + '"',
+			)
+			this.logger.log('   - 🏁 目的地 (Dest): ' + (city || '❓ 未知'))
+			this.logger.log('   - 🚀 出发地 (Origin): ' + (origin || '❓ 未知'))
+			this.logger.log('   - 💰 预算参考: ' + (budget || '❓ 未知'))
 
 			if (city) {
 				this.logger.log(
-					`检测到目的地: \${city}，维持环境数据注入 (Weather/POI)...`,
+					'检测到目的地: ' + city + '，维持环境数据注入 (Weather/POI)...',
 				)
 				const [weather, pois] = await Promise.all([
 					this.weatherService.getWeather(city),
@@ -226,8 +244,13 @@ export class LangChainService {
 				])
 
 				if (weather) {
-					this.logger.log(`⛅ 天气数据: \${weather}`)
-					weatherInfo = `\n**当前目的地(\${city})天气参考**：\n\${weather}\n请**务必**将上述天气信息与具体日期对应（今日即为 Day 1），在行程表中注明每日的具体天气状况。`
+					this.logger.log('⛅ 天气数据: ' + weather)
+					weatherInfo =
+						'\n**当前目的地(' +
+						city +
+						')天气参考**：\n' +
+						weather +
+						'\n请**务必**将上述天气信息与具体日期对应（今日即为 Day 1），在行程表中注明每日的具体天气状况。'
 				}
 
 				if (pois) {
@@ -241,24 +264,25 @@ export class LangChainService {
 				const performDuckDuckGo = async () => {
 					try {
 						this.logger.log(
-							`🔍 使用 DuckDuckGo 搜索 "\${city} 旅游攻略" (Fallback)...`,
+							'🔍 使用 DuckDuckGo 搜索 "' + city + ' 旅游攻略" (Fallback)...',
 						)
 						const searchTool = new DuckDuckGoSearch()
 						const searchResults = await searchTool.invoke(
-							`\${city} 旅游攻略 必去景点 美食推荐`,
+							city + ' 旅游攻略 必去景点 美食推荐',
 						)
 						if (searchResults) {
-							searchInfo = `\n## 🌐 网络搜索实时资讯 (DuckDuckGo)\n\${searchResults}\n`
-							this.logger.log(`✅ DuckDuckGo 搜索成功`)
+							searchInfo =
+								'\n## 🌐 网络搜索实时资讯 (DuckDuckGo)\n' + searchResults + '\n'
+							this.logger.log('✅ DuckDuckGo 搜索成功')
 						}
 					} catch (ddgErr) {
 						if (
 							ddgErr.message?.includes('too quickly') ||
 							ddgErr.message?.includes('429')
 						) {
-							this.logger.warn(`⚠️ DuckDuckGo 限流，跳过搜索 (不影响主流程)`)
+							this.logger.warn('⚠️ DuckDuckGo 限流，跳过搜索 (不影响主流程)')
 						} else {
-							this.logger.warn(`⚠️ DuckDuckGo 搜索失败: \${ddgErr.message}`)
+							this.logger.warn('⚠️ DuckDuckGo 搜索失败: ' + ddgErr.message)
 						}
 					}
 				}
@@ -270,22 +294,25 @@ export class LangChainService {
 						// 方案 A: 使用 Tavily (更稳定，专门为 AI 优化)
 						try {
 							this.logger.log(
-								`🔍 使用 Tavily 搜索 "\${city} 旅游攻略" (API Key present)...`,
+								'🔍 使用 Tavily 搜索 "' +
+									city +
+									' 旅游攻略" (API Key present)...',
 							)
 							// 动态引入本地自定义工具
 							const { TavilyTool } = await import('./tavily.tool')
 							const searchTool = new TavilyTool(tavilyKey)
 
 							const searchResults = await searchTool.invoke(
-								`\${city} 旅游攻略 必去景点 美食推荐`,
+								city + ' 旅游攻略 必去景点 美食推荐',
 							)
 							if (searchResults) {
-								searchInfo = `\n## 🌐 网络搜索实时资讯 (Tavily)\n\${searchResults}\n`
-								this.logger.log(`✅ Tavily 搜索成功`)
+								searchInfo =
+									'\n## 🌐 网络搜索实时资讯 (Tavily)\n' + searchResults + '\n'
+								this.logger.log('✅ Tavily 搜索成功')
 							}
 						} catch (tavilyErr) {
 							this.logger.warn(
-								`⚠️ Tavily 搜索失败 (自动降级): \${tavilyErr.message}`,
+								'⚠️ Tavily 搜索失败 (自动降级): ' + tavilyErr.message,
 							)
 							// 降级尝试 DuckDuckGo
 							await performDuckDuckGo()
@@ -314,10 +341,18 @@ export class LangChainService {
 				timeZone: timezone,
 				weekday: 'short',
 			})
+			const dateContext =
+				'\n## 📅 当前时间参考 (用户时区: ' +
+				timezone +
+				')\n现在是：' +
+				timeString +
+				' ' +
+				weekday +
+				'\n**IMPORTANT**: 当用户提到"明天"、"后天"、"接下来三天"等相对时间时，你**必须**基于上述当前时间计算出具体的日期(YYYY-MM-DD)，并在行程表中明确展示。'
 
-			const dateContext = `\n## 📅 当前时间参考 (用户时区: ${timezone})\n现在是：${timeString} ${weekday}\n**IMPORTANT**: 当用户提到"明天"、"后天"、"接下来三天"等相对时间时，你**必须**基于上述当前时间计算出具体的日期(YYYY-MM-DD)，并在行程表中明确展示。`
-
-			this.logger.log(`[Date Context] 注入时间上下文: ${timeString} ${weekday}`)
+			this.logger.log(
+				'[Date Context] 注入时间上下文: ' + timeString + ' ' + weekday,
+			)
 
 			let finalSystemPrompt = this.systemPrompt
 				.replace(
@@ -330,7 +365,7 @@ export class LangChainService {
 			// 动态调整“出发地”要求
 			if (user && user.preferences && user.preferences.homeCity) {
 				const homeCity = user.preferences.homeCity.trim()
-				this.logger.log(`[Prompt Injection] 检测到用户常居城市: ${homeCity}`)
+				this.logger.log('[Prompt Injection] 检测到用户常居城市: ' + homeCity)
 
 				// 尝试替换原有指令 (更宽松的正则)
 				const departureInstructionRegex = /1\.\s*\*\*出发地\*\*.*$/m
@@ -338,19 +373,23 @@ export class LangChainService {
 				if (departureInstructionRegex.test(finalSystemPrompt)) {
 					finalSystemPrompt = finalSystemPrompt.replace(
 						departureInstructionRegex,
-						`1. **出发地**：已确认是 **${homeCity}** (基于常居地)。**无需询问**，直接规划。`,
+						'1. **出发地**：已确认是 **' +
+							homeCity +
+							'** (基于常居地)。**无需询问**，直接规划。',
 					)
-					this.logger.log(`[Prompt Injection] 成功替换出发地指令`)
+					this.logger.log('[Prompt Injection] 成功替换出发地指令')
 				} else {
-					this.logger.warn(`[Prompt Injection] 正则不匹配，采用追加覆盖策略`)
+					this.logger.warn('[Prompt Injection] 正则不匹配，采用追加覆盖策略')
 					// 如果正则失败，直接在 "必填信息收集" 后面追加说明
 					finalSystemPrompt = finalSystemPrompt.replace(
 						'## 🎯 必填信息收集',
-						`## 🎯 必填信息收集\n> **系统注**：用户常居 **${homeCity}**，默认将其作为出发地，**不要再问**用户从哪出发。`,
+						'## 🎯 必填信息收集\n> **系统注**：用户常居 **' +
+							homeCity +
+							'**，默认将其作为出发地，**不要再问**用户从哪出发。',
 					)
 				}
 			} else {
-				this.logger.debug(`[Prompt Injection] 无常居城市信息`)
+				this.logger.debug('[Prompt Injection] 无常居城市信息')
 			}
 
 			// 注入用户偏好 (User Context)
@@ -382,7 +421,7 @@ export class LangChainService {
 				}),
 			]
 
-			this.logger.debug(`开始流式调用 LangChain ChatModel...`)
+			this.logger.debug('开始流式调用 LangChain ChatModel...')
 
 			// 4. 工具绑定与流式调用 (Tool Calling Loop)
 			// 引入计算器工具
@@ -401,7 +440,7 @@ export class LangChainService {
 				inputMessages: any[],
 				depth = 0,
 			): AsyncGenerator<string> {
-				logger.debug(`[StreamLoop] Depth ${depth}: Starting stream...`)
+				logger.debug('[StreamLoop] Depth ' + depth + ': Starting stream...')
 				const stream = await modelWithTools.stream(inputMessages)
 				let accumulatedMessage: any = null
 				let contentCount = 0
@@ -423,14 +462,28 @@ export class LangChainService {
 				}
 
 				logger.debug(
-					`[StreamLoop] Depth ${depth}: Stream finished. Content chars: ${contentCount}`,
+					'[StreamLoop] Depth ' +
+						depth +
+						': Stream finished. Content chars: ' +
+						contentCount,
 				)
+
+				// [DEBUG] Log the full content to see what AI generated
+				if (accumulatedMessage?.content) {
+					logger.log('[AI Response Content]:\n' + accumulatedMessage.content)
+				}
 
 				// 3. 如果有工具调用，执行并递归
 				if (accumulatedMessage?.tool_calls?.length > 0) {
 					const toolCalls = accumulatedMessage.tool_calls
+					const toolNames = toolCalls.map((t: any) => t.name).join(', ')
 					logger.log(
-						`[ToolCall] Depth ${depth}: Detected ${toolCalls.length} tools: ${toolCalls.map((t: any) => t.name).join(', ')}`,
+						'[ToolCall] Depth ' +
+							depth +
+							': Detected ' +
+							toolCalls.length +
+							' tools: ' +
+							toolNames,
 					)
 
 					// 将完整的 AI 回复 (Accumulated) 加入历史，确保上下文连贯
@@ -442,17 +495,22 @@ export class LangChainService {
 							const tool = tools.find((t) => t.name === toolCall.name)
 							if (tool) {
 								try {
-									logger.debug(`[ToolExec] Executing ${tool.name}...`)
+									logger.debug('[ToolExec] Executing ' + tool.name + '...')
 									const result = await tool.invoke(toolCall.args)
+									const resultStr = JSON.stringify(result)
 									logger.debug(
-										`[ToolExec] ${tool.name} result: ${JSON.stringify(result).slice(0, 50)}...`,
+										'[ToolExec] ' +
+											tool.name +
+											' result: ' +
+											resultStr.slice(0, 50) +
+											'...',
 									)
 									return new ToolMessage({
 										tool_call_id: toolCall.id!,
-										content: JSON.stringify(result), // 确保是字符串
+										content: resultStr,
 									})
 								} catch (err) {
-									console.error(`Tool execution failed:`, err)
+									console.error('Tool execution failed:', err)
 									return new ToolMessage({
 										tool_call_id: toolCall.id!,
 										content: 'Error: Execution failed.',
@@ -470,13 +528,19 @@ export class LangChainService {
 
 					// 递归调用
 					logger.debug(
-						`[StreamLoop] Depth ${depth}: Recursing to Depth ${depth + 1}...`,
+						'[StreamLoop] Depth ' +
+							depth +
+							': Recursing to Depth ' +
+							(depth + 1) +
+							'...',
 					)
 					yield* executeLoop(newMessages, depth + 1)
 				} else {
 					if (accumulatedMessage?.tool_calls) {
 						logger.debug(
-							`[StreamLoop] Depth ${depth}: No valid tool calls found in accumulated message.`,
+							'[StreamLoop] Depth ' +
+								depth +
+								': No valid tool calls found in accumulated message.',
 						)
 					}
 				}
@@ -507,3 +571,4 @@ export class LangChainService {
 		return fullResponse
 	}
 }
+// Syntax fixed verified

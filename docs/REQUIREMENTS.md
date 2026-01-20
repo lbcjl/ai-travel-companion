@@ -44,6 +44,7 @@
 - [ ] 性能优化
 - [x] UI/UX 微调 (Profile Multi-select & Modal)
 - [x] 智能上下文优化 (Departure City Auto-fill)
+- [x] JSON Output Migration (Structured Data)
 
 ## 功能需求详细说明
 
