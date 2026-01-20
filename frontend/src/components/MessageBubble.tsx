@@ -3,7 +3,6 @@ import './MessageBubble.css'
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import ItinerarySummaryCard from './ItinerarySummaryCard'
 import CompactItineraryView from './CompactItineraryView'
 import QuestionCard from './QuestionCard'
 import Avatar from './Avatar'
