@@ -460,9 +460,34 @@
 - **Enhancement**: 优化 AI System Prompt，实现智能出发地推断。
 - **Logic**: 当用户资料中设置了“常居城市”时，AI 将自动将其作为默认出发地，不再询问用户“从哪出发”，除非用户显式覆盖。
 - **Impact**: 减少冗余对话轮次，提升用户体验的连贯性。
+- **Refinement (2026-01-20 08:50)**: 进一步强化系统提示词，使用更严厉的指令禁止 AI 在已有常居城市时询问出发地。
+
+## [2026-01-20 08:55] 时间感知能力增强
+
+- **Feature**: 集成 `TimeTool` (时间工具)，允许 AI 主动查询当前的精确系统时间、星期及日期。
+- **Context Injection**: 在系统提示词中直接注入服务器实时时间 (CST)，消除模型的时间幻觉，确保行程日期的准确性。
+
+## [2026-01-20 09:05] 时区自适应 (User-Based Timezone)
+
+- **Feature**: 系统现在会**自动检测用户浏览器时区**（如 `America/New_York` 或 `Asia/Tokyo`），不再强制锁定北京时间。
+- **Implementation**:
+  - 前端：自动捕获 `Intl.DateTimeFormat().resolvedOptions().timeZone` 并通过 `X-Timezone` 请求头发送。
+  - 后端：AI 对话引擎和 `TimeTool` 均动态接收此时区参数，确保时间回答与用户所在地完全同步。
 
 ## [2026-01-20 08:35] 个人中心体验升级 - 多选与交互优化
 
 - **Feature**: 个人偏好设置中的“旅行风格”现在支持**多选**（如同时选择“休闲放松”和“美食之旅”），让 AI 能够生成更符合复合需求的行程。
 - **UX Improvement**: 保存成功后的提示方式从不起眼的文字改为了**弹窗 (Modal Alert)**，给用户更明确的反馈。
 - **Refactor**: 更新了前端类型定义以匹配新的数据结构。
+
+## [2026-01-20 09:15] 稳定性修复 (Stabilization)
+
+- **Fix**: 修复前端 `ChatInterface` 和 `MessageBubble` 因消息内容非字符串导致的崩溃问题 (Crash Loop Fix)。
+- **Fix**: 修复 Vite HMR 热更新报错，正确隔离 `AuthContext` 中的类型导出。
+- **Fix**: 修复后端 `ChatController` 返回完整消息对象导致前端显示 JSON 乱码的问题。
+- **Fix**: 修复 `JwtStrategy` 未查询数据库导致 AI 无法获取用户完整偏好 (常居地/旅行风格) 的问题。
+
+## [2026-01-20 09:30] 核心功能验证 (Verification)
+
+- **Validated**: 确认用户资料 (Personal Profile) 中的“常居城市”和“旅行风格”已正确通过 JWT链路 传递并注入到 AI System Prompt 中。
+- **Status**: 系统已稳定，时区自适应、偏好记忆和流式响应均正常工作。

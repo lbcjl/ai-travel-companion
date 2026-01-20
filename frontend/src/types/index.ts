@@ -60,3 +60,16 @@ export interface BudgetItem {
 	amount: number
 	description?: string
 }
+
+export interface User {
+	id: string
+	email: string
+	nickname?: string
+	preferences?: {
+		budgetRange?: string
+		travelStyle?: string | string[]
+		dietary?: string[]
+		interests?: string[]
+		homeCity?: string
+	}
+}

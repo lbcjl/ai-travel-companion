@@ -27,7 +27,7 @@ export class LangChainService {
 
 ## 🎯 必填信息收集
 在开始生成方案前，你**必须**确认以下信息（如果用户没提供，请追问）：
-1. **出发地**（⚠️ 注意：如果下方的【用户个性化偏好】中包含“常居城市”，请默认将该城市作为“出发地”，**无需再次询问**，除非用户明确指定了其他出发地）
+1. **出发地**（⚠️ 检查下方【用户个性化偏好】中的“常居城市”。如有，直接默认作为出发地，**严禁再次询问**，除非用户明确说从别的地方出发）
 2. **目的地**（国家/城市，支持多个城市，如“上海和苏州”）
 3. **出行时间**（起止日期或天数）
 4. **旅行预算**（人民币总额）
@@ -139,6 +139,7 @@ export class LangChainService {
 	async *chatStream(
 		messages: LangChainMessage[],
 		user?: any,
+		timezone: string = 'Asia/Shanghai',
 	): AsyncGenerator<string> {
 		try {
 			// 0. 构建用户偏好上下文
@@ -226,7 +227,7 @@ export class LangChainService {
 
 				if (weather) {
 					this.logger.log(`⛅ 天气数据: \${weather}`)
-					weatherInfo = `\n**当前目的地(\${city})天气参考**：\n\${weather}\n请根据天气情况调整行程安排。`
+					weatherInfo = `\n**当前目的地(\${city})天气参考**：\n\${weather}\n请**务必**将上述天气信息与具体日期对应（今日即为 Day 1），在行程表中注明每日的具体天气状况。`
 				}
 
 				if (pois) {
@@ -300,14 +301,58 @@ export class LangChainService {
 			}
 
 			// 2. 注入各类信息到 System Prompt
+			const now = new Date()
+			const timeString = now.toLocaleString('zh-CN', {
+				timeZone: timezone,
+				hour12: false,
+			})
+			// weekday need careful handling for manual array calc, but toLocaleString helps
+			// but here we used an array based on now.getDay().
+			// now.getDay() is based on local system time (server time), NOT the timezone passed.
+			// To get correct weekday for the timezone, use Intl or simple hack.
+			const weekday = now.toLocaleDateString('zh-CN', {
+				timeZone: timezone,
+				weekday: 'short',
+			})
+
+			const dateContext = `\n## 📅 当前时间参考 (用户时区: ${timezone})\n现在是：${timeString} ${weekday}\n`
+
 			let finalSystemPrompt = this.systemPrompt
 				.replace(
 					'{weather_info}',
-					weatherInfo || '（暂无具体天气信息，请按一般季节性气候规划）',
+					(weatherInfo || '（暂无具体天气信息，请按一般季节性气候规划）') +
+						dateContext,
 				)
 				.replace('{search_info}', searchInfo) // 注入搜索结果
 
-			// 注入用户偏好
+			// 动态调整“出发地”要求
+			if (user && user.preferences && user.preferences.homeCity) {
+				const homeCity = user.preferences.homeCity.trim()
+				this.logger.log(`[Prompt Injection] 检测到用户常居城市: ${homeCity}`)
+
+				// 尝试替换原有指令 (更宽松的正则)
+				const departureInstructionRegex = /1\.\s*\*\*出发地\*\*.*$/m
+
+				if (departureInstructionRegex.test(finalSystemPrompt)) {
+					finalSystemPrompt = finalSystemPrompt.replace(
+						departureInstructionRegex,
+						`1. **出发地**：已确认是 **${homeCity}** (基于常居地)。**无需询问**，直接规划。`,
+					)
+					this.logger.log(`[Prompt Injection] 成功替换出发地指令`)
+				} else {
+					this.logger.warn(`[Prompt Injection] 正则不匹配，采用追加覆盖策略`)
+					// 如果正则失败，直接在 "必填信息收集" 后面追加说明
+					finalSystemPrompt = finalSystemPrompt.replace(
+						'## 🎯 必填信息收集',
+						`## 🎯 必填信息收集\n> **系统注**：用户常居 **${homeCity}**，默认将其作为出发地，**不要再问**用户从哪出发。`,
+					)
+				}
+			} else {
+				this.logger.debug(`[Prompt Injection] 无常居城市信息`)
+			}
+
+			// 注入用户偏好 (User Context)
+			// 注意：这里已经包含了 "常居城市: xxx" 的信息，但上面的 System Prompt 修改是为了明确 "不要问" 的指令
 			if (userContextPrompt) {
 				finalSystemPrompt += userContextPrompt
 			}
@@ -341,7 +386,11 @@ export class LangChainService {
 			// 引入计算器工具
 			const { Calculator } =
 				await import('@langchain/community/tools/calculator')
-			const tools = [new Calculator()]
+			// 动态引入 TimeTool
+			const { TimeTool } = await import('./tools/time.tool')
+
+			// Pass dynamic timezone to TimeTool
+			const tools = [new Calculator(), new TimeTool(timezone)]
 			const modelWithTools = this.chatModel.bindTools(tools)
 
 			// 定义处理流的函数
@@ -417,10 +466,14 @@ export class LangChainService {
 	/**
 	 * 使用 LangChain 调用通义千问 API (非流式)
 	 */
-	async chat(messages: LangChainMessage[], user?: any): Promise<string> {
+	async chat(
+		messages: LangChainMessage[],
+		user?: any,
+		timezone: string = 'Asia/Shanghai',
+	): Promise<string> {
 		// 复用流式逻辑，但收集所有 chunks 后返回完整内容
 		let fullResponse = ''
-		for await (const chunk of this.chatStream(messages, user)) {
+		for await (const chunk of this.chatStream(messages, user, timezone)) {
 			fullResponse += chunk
 		}
 		return fullResponse

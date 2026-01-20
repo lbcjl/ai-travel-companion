@@ -18,30 +18,32 @@ export class ChatService {
 	) {}
 
 	/**
-	 * 发送消息并获取 AI 回复
-	 */
-	/**
 	 * 发送消息并获取 AI 回复 (流式)
 	 */
 	async sendMessageStream(
 		conversationId: string | null,
-		userMessage: string,
+		content: string, // Changed from userMessage to content logic
 		user: any = null,
+		timezone: string = 'Asia/Shanghai',
 	): Promise<{
 		stream: AsyncGenerator<string>
 		conversationId: string
 		onComplete: (fullContent: string) => Promise<void>
 	}> {
+		if (!content) {
+			throw new Error('Content cannot be empty')
+		}
+
 		let conversation: Conversation
 
 		// 如果没有指定会话，创建新会话
 		if (!conversationId) {
 			conversation = this.conversationRepo.create({
-				title: this.generateTitle(userMessage),
-				messages: [],
+				title: content.substring(0, 20) + '...',
 				userId: user ? user.id : null,
 			})
-			await this.conversationRepo.save(conversation)
+			conversation = await this.conversationRepo.save(conversation)
+			conversation.messages = [] // Initialize messages for new conversation
 			this.logger.log(
 				`创建新会话: ${conversation.id}, User: ${user ? user.email : 'Guest'}`,
 			)
@@ -59,37 +61,47 @@ export class ChatService {
 		}
 
 		// 保存用户消息
-		const userMsg = this.messageRepo.create({
-			conversationId: conversation.id,
+		const userMessage = this.messageRepo.create({
+			conversation: conversation,
 			role: 'user',
-			content: userMessage,
+			content: content,
 		})
-		await this.messageRepo.save(userMsg)
+		await this.messageRepo.save(userMessage)
 
 		// 构建对话历史
-		const history: LangChainMessage[] = conversation.messages.map((msg) => ({
-			role: msg.role as 'user' | 'assistant' | 'system',
-			content: msg.content,
-		}))
+		const historyMessages: LangChainMessage[] = conversation.messages.map(
+			(msg) => ({
+				role: msg.role as 'user' | 'assistant' | 'system',
+				content: msg.content,
+			}),
+		)
 
 		// 添加当前用户消息
-		history.push({ role: 'user', content: userMessage })
+		historyMessages.push({ role: 'user', content: content })
 
 		// 调用 LangChain 流式接口
 		this.logger.log(`调用 LangChain Stream API，会话: ${conversation.id}`)
-		const stream = this.langChainService.chatStream(history, user)
+		const stream = this.langChainService.chatStream(
+			historyMessages,
+			user,
+			timezone,
+		)
 
 		return {
 			stream,
 			conversationId: conversation.id,
 			onComplete: async (fullContent: string) => {
 				// 保存 AI 回复
-				const assistantMsg = this.messageRepo.create({
-					conversationId: conversation.id,
+				const assistantMessage = this.messageRepo.create({
+					conversation: conversation,
 					role: 'assistant',
 					content: fullContent,
 				})
-				await this.messageRepo.save(assistantMsg)
+				await this.messageRepo.save(assistantMessage)
+				// Update conversation's updatedAt field
+				await this.conversationRepo.update(conversation.id, {
+					updatedAt: new Date(),
+				})
 				this.logger.log(
 					`流式响应完成，已保存完整消息。长度: ${fullContent.length}`,
 				)
@@ -102,19 +114,24 @@ export class ChatService {
 	 */
 	async sendMessage(
 		conversationId: string | null,
-		userMessage: string,
+		content: string,
 		user: any = null,
-	): Promise<{ conversation: Conversation; assistantMessage: string }> {
+		timezone: string = 'Asia/Shanghai',
+	): Promise<{ conversation: Conversation; assistantMessage: Message }> {
+		if (!content) {
+			throw new Error('Content cannot be empty')
+		}
+
 		let conversation: Conversation
 
 		// 如果没有指定会话，创建新会话
 		if (!conversationId) {
 			conversation = this.conversationRepo.create({
-				title: this.generateTitle(userMessage),
-				messages: [],
+				title: content.substring(0, 20) + '...',
 				userId: user ? user.id : null,
 			})
-			await this.conversationRepo.save(conversation)
+			conversation = await this.conversationRepo.save(conversation)
+			conversation.messages = [] // Initialize messages for new conversation
 			this.logger.log(
 				`创建新会话: ${conversation.id}, User: ${user ? user.email : 'Guest'}`,
 			)
@@ -132,33 +149,39 @@ export class ChatService {
 		}
 
 		// 保存用户消息
-		const userMsg = this.messageRepo.create({
-			conversationId: conversation.id,
+		const userMessage = this.messageRepo.create({
+			conversation: conversation,
 			role: 'user',
-			content: userMessage,
+			content: content,
 		})
-		await this.messageRepo.save(userMsg)
+		await this.messageRepo.save(userMessage)
 
 		// 构建对话历史
-		const history: LangChainMessage[] = conversation.messages.map((msg) => ({
-			role: msg.role as 'user' | 'assistant' | 'system',
-			content: msg.content,
-		}))
+		const historyMessages: LangChainMessage[] = conversation.messages.map(
+			(msg) => ({
+				role: msg.role as 'user' | 'assistant' | 'system',
+				content: msg.content,
+			}),
+		)
 
 		// 添加当前用户消息
-		history.push({ role: 'user', content: userMessage })
+		historyMessages.push({ role: 'user', content: content })
 
 		// 调用 LangChain
 		this.logger.log(`调用 LangChain API，会话: ${conversation.id}`)
-		const assistantReply = await this.langChainService.chat(history, user)
+		const assistantReply = await this.langChainService.chat(
+			historyMessages,
+			user,
+			timezone,
+		)
 
 		// 保存 AI 回复
-		const assistantMsg = this.messageRepo.create({
-			conversationId: conversation.id,
+		const assistantMessage = this.messageRepo.create({
+			conversation: conversation,
 			role: 'assistant',
 			content: assistantReply,
 		})
-		await this.messageRepo.save(assistantMsg)
+		await this.messageRepo.save(assistantMessage)
 
 		// 重新加载会话（包含最新消息）
 		const updatedConversation = await this.conversationRepo.findOne({
@@ -168,13 +191,10 @@ export class ChatService {
 
 		return {
 			conversation: updatedConversation!,
-			assistantMessage: assistantReply,
+			assistantMessage: assistantMessage,
 		}
 	}
 
-	/**
-	 * 获取所有会话列表
-	 */
 	/**
 	 * 获取所有会话列表 (仅返回属于当前用户的会话)
 	 */

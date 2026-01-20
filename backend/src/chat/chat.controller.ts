@@ -35,19 +35,21 @@ export class ChatController {
 	@HttpCode(HttpStatus.OK)
 	async sendMessage(@Body() dto: SendMessageDto, @Req() req: any) {
 		const user = req.user
+		const timezone = (req.headers['x-timezone'] as string) || 'Asia/Shanghai'
 		this.logger.log(
-			`收到消息: 会话=${dto.conversationId || '新会话'}, 用户=${user?.email || 'Guest'}, 内容="${dto.content.substring(0, 50)}..."`,
+			`收到消息: 会话=${dto.conversationId || '新会话'}, 用户=${user?.email || 'Guest'}, 时区=${timezone}, 内容="${dto.content.substring(0, 50)}..."`,
 		)
 
 		const result = await this.chatService.sendMessage(
 			dto.conversationId || null,
 			dto.content,
 			user,
+			timezone,
 		)
 
 		return {
 			conversationId: result.conversation.id,
-			message: result.assistantMessage,
+			message: result.assistantMessage.content,
 			conversation: result.conversation,
 		}
 	}
@@ -64,8 +66,9 @@ export class ChatController {
 		@Req() req: any,
 	) {
 		const user = req.user
+		const timezone = (req.headers['x-timezone'] as string) || 'Asia/Shanghai'
 		this.logger.log(
-			`收到流式请求: 会话=${dto.conversationId || '新会话'}, 用户=${user?.email || 'Guest'}, 内容="${dto.content.substring(0, 50)}..."`,
+			`收到流式请求: 会话=${dto.conversationId || '新会话'}, 用户=${user?.email || 'Guest'}, 时区=${timezone}, 内容="${dto.content.substring(0, 50)}..."`,
 		)
 
 		try {
@@ -74,6 +77,7 @@ export class ChatController {
 					dto.conversationId || null,
 					dto.content,
 					user,
+					timezone,
 				)
 
 			// 设置响应头，告诉客户端这是一个流

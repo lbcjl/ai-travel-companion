@@ -8,6 +8,18 @@ const api = axios.create({
 	},
 })
 
+// Add request interceptor to inject token
+api.interceptors.request.use((config) => {
+	const token = localStorage.getItem('token')
+	if (token) {
+		config.headers.Authorization = `Bearer ${token}`
+	}
+	// Also inject timezone here as a fallback/ensure
+	const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+	config.headers['X-Timezone'] = timezone
+	return config
+})
+
 export interface SendMessageRequest {
 	conversationId?: string
 	content: string

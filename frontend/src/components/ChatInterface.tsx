@@ -45,6 +45,7 @@ export default function ChatInterface() {
 			.find(
 				(m) =>
 					m.role === 'assistant' &&
+					typeof m.content === 'string' &&
 					(m.content.includes('| 序号 |') || m.content.includes('|--')),
 			)
 		return lastAiMsg ? lastAiMsg.content : ''

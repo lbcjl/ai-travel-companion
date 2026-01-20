@@ -16,6 +16,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 	// 检测是否为旅行计划消息（包含行程表格或关键词）
 	const isTravelPlan =
 		isAssistant &&
+		typeof message.content === 'string' &&
 		(message.content.includes('## 📅 每日详细行程') ||
 			message.content.includes('| 序号 |'))
 
@@ -39,7 +40,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 			<div className='message-content'>
 				<div className='message-text'>
 					{/* 对于旅行计划使用 Summary Card，点击展开详情 */}
-					{message.content ? (
+					{message.content && typeof message.content === 'string' ? (
 						<>
 							{isTravelPlan ? (
 								<ItinerarySummaryCard content={message.content} />
@@ -52,6 +53,13 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 							)}
 						</>
 					) : (
+						<div className='time-tooltip'>
+							{message.content && typeof message.content !== 'string'
+								? JSON.stringify(message.content)
+								: ''}
+						</div>
+					)}
+					{!message.content && (
 						<div className='typing-dots-inline'>
 							<span></span>
 							<span></span>
